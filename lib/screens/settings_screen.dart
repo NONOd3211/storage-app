@@ -12,6 +12,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late ThemeMode _themeMode;
   late int _warningDays;
   late int _urgentDays;
+  late bool _notificationEnabled;
 
   @override
   void initState() {
@@ -19,6 +20,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _themeMode = settingsService.themeMode;
     _warningDays = settingsService.warningDays;
     _urgentDays = settingsService.urgentDays;
+    _notificationEnabled = settingsService.notificationEnabled;
   }
 
   @override
@@ -41,6 +43,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // 保质期阈值设置
           _buildSectionHeader('保质期提醒'),
+          SwitchListTile(
+            secondary: const Icon(Icons.notifications),
+            title: const Text('启用通知'),
+            subtitle: Text(_notificationEnabled ? '已开启' : '已关闭'),
+            value: _notificationEnabled,
+            onChanged: (value) {
+              setState(() => _notificationEnabled = value);
+              settingsService.setNotificationEnabled(value);
+            },
+          ),
           ListTile(
             leading: const Icon(Icons.warning_amber),
             title: const Text('即将过期提醒'),
@@ -189,8 +201,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const Text('一款简洁的物品收纳管理应用'),
         const SizedBox(height: 8),
         const Text('帮助您管理物品位置和保质期'),
+        const SizedBox(height: 16),
+        const Divider(),
         const SizedBox(height: 8),
-        const Text('© 2024 收纳'),
+        const Text(
+          '功能介绍',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        const Text('• 物品管理（添加、编辑、删除）'),
+        const Text('• 位置管理（预设+自定义位置）'),
+        const Text('• 保质期追踪（智能状态提醒）'),
+        const Text('• 分类筛选'),
+        const Text('• 数据统计'),
+        const SizedBox(height: 16),
+        const Divider(),
+        const SizedBox(height: 8),
+        const Text('作者：NONOd'),
       ],
     );
   }

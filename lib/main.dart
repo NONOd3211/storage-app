@@ -12,13 +12,13 @@ final SettingsService settingsService = SettingsService();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize settings service first (required by notification service)
+  await settingsService.init();
+
   // Initialize notification service
   final notificationService = NotificationService();
   await notificationService.initialize();
   await notificationService.requestPermission();
-
-  // Initialize settings service
-  await settingsService.init();
 
   runApp(const StorageApp());
 }

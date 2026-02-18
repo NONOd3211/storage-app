@@ -5,6 +5,7 @@ class SettingsService {
   static const String _themeKey = 'theme_mode';
   static const String _warningDaysKey = 'warning_days';
   static const String _urgentDaysKey = 'urgent_days';
+  static const String _notificationEnabledKey = 'notification_enabled';
 
   late SharedPreferences _prefs;
 
@@ -56,5 +57,14 @@ class SettingsService {
 
   Future<void> setUrgentDays(int days) async {
     await _prefs.setInt(_urgentDaysKey, days);
+  }
+
+  // 通知设置
+  bool get notificationEnabled {
+    return _prefs.getBool(_notificationEnabledKey) ?? true;
+  }
+
+  Future<void> setNotificationEnabled(bool enabled) async {
+    await _prefs.setBool(_notificationEnabledKey, enabled);
   }
 }
