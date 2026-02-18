@@ -1,3 +1,5 @@
+import '../main.dart';
+
 enum ItemCategory {
   food('食品'),
   medicine('药品'),
@@ -82,8 +84,11 @@ class Item {
     final days = daysUntilExpiration;
     if (days == null) return ExpirationStatus.fresh;
     if (days < 0) return ExpirationStatus.expired;
-    if (days < 30) return ExpirationStatus.urgent;
-    if (days < 90) return ExpirationStatus.warning;
+    // 使用设置中的阈值
+    final urgentDays = settingsService.urgentDays;
+    final warningDays = settingsService.warningDays;
+    if (days < urgentDays) return ExpirationStatus.urgent;
+    if (days < warningDays) return ExpirationStatus.warning;
     return ExpirationStatus.fresh;
   }
 

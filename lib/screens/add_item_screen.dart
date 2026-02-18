@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import '../main.dart';
 import '../models/item.dart';
 import '../view_models/item_view_model.dart';
 import '../view_models/location_view_model.dart';
@@ -84,8 +85,11 @@ class _AddItemScreenState extends State<AddItemScreen> {
     final days = calculatedDays;
     if (days == null) return Colors.green;
     if (days < 0) return Colors.red;
-    if (days < 30) return Colors.orange;
-    if (days < 90) return Colors.yellow.shade700;
+    // 使用设置中的阈值
+    final urgentDays = settingsService.urgentDays;
+    final warningDays = settingsService.warningDays;
+    if (days < urgentDays) return Colors.orange;
+    if (days < warningDays) return Colors.yellow.shade700;
     return Colors.green;
   }
 

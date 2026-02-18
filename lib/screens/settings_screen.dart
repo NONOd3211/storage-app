@@ -88,7 +88,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text('收纳'),
-            subtitle: const Text('版本 1.1.7'),
+            subtitle: const Text('版本 1.1.8'),
             onTap: _showAboutDialog,
           ),
         ],
@@ -191,7 +191,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showAboutDialog(
       context: context,
       applicationName: '收纳',
-      applicationVersion: '1.1.7',
+      applicationVersion: '1.1.8',
       applicationIcon: const Icon(
         Icons.inventory_2,
         size: 48,

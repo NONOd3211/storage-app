@@ -244,7 +244,7 @@ class _LocationListScreenState extends State<LocationListScreen> {
                       dense: true,
                       leading: const Icon(Icons.inventory_2, size: 20),
                       title: Text(item.name),
-                      subtitle: Text('x${item.quantity}'),
+                      subtitle: Text('x${item.quantity.toString()}'),
                       contentPadding: EdgeInsets.zero,
                     );
                   },

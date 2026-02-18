@@ -26,10 +26,6 @@ class ItemCard extends StatelessWidget {
     }
   }
 
-  bool get _needsRenew {
-    return item.expirationStatus != ExpirationStatus.fresh;
-  }
-
   void _showRenewDialog(BuildContext context) {
     if (item.expirationDays == null && item.expirationDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -40,7 +36,7 @@ class ItemCard extends StatelessWidget {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('重置保质期'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -53,63 +49,84 @@ class ItemCard extends StatelessWidget {
         ),
         actions: [
           TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => _renew(dialogContext, 30),
+            child: const Text('+30 天'),
+          ),
+          FilledButton(
+            onPressed: () => _renew(dialogContext, 90),
+            child: const Text('+90 天'),
+          ),
+          FilledButton(
+            onPressed: () => _renew(dialogContext, 180),
+            child: const Text('+180 天'),
+          ),
+          FilledButton(
+            onPressed: () => _renew(dialogContext, 365),
+            child: const Text('+365 天'),
+          ),
+          TextButton(
+            onPressed: () => _showCustomDaysDialog(dialogContext),
+            child: const Text('自定义天数'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _renew(BuildContext dialogContext, int days) {
+    if (onRenew != null) {
+      // 直接创建新对象，清除生产日期和保质期天数，只保留到期日期
+      final renewedItem = Item(
+        id: item.id,
+        name: item.name,
+        category: item.category,
+        storageLocation: item.storageLocation,
+        quantity: item.quantity,
+        productionDate: null,
+        expirationDays: null,
+        expirationDate: DateTime.now().add(Duration(days: days)),
+        notes: item.notes,
+        createdAt: item.createdAt,
+        updatedAt: DateTime.now(),
+      );
+      onRenew!(renewedItem);
+    }
+    Navigator.pop(dialogContext);
+  }
+
+  void _showCustomDaysDialog(BuildContext dialogContext) {
+    final controller = TextEditingController();
+    showDialog(
+      context: dialogContext,
+      builder: (context) => AlertDialog(
+        title: const Text('自定义天数'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: '天数',
+            border: OutlineInputBorder(),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('取消'),
           ),
           FilledButton(
             onPressed: () {
-              if (onRenew != null) {
-                onRenew!(item.copyWith(
-                  expirationDate: DateTime.now().add(const Duration(days: 30)),
-                ));
+              final days = int.tryParse(controller.text);
+              if (days != null && days > 0) {
+                Navigator.pop(context);
+                _renew(dialogContext, days);
               }
-              Navigator.pop(context);
             },
-            child: const Text('+30 天'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (onRenew != null) {
-                onRenew!(item.copyWith(
-                  expirationDate: DateTime.now().add(const Duration(days: 60)),
-                ));
-              }
-              Navigator.pop(context);
-            },
-            child: const Text('+60 天'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (onRenew != null) {
-                onRenew!(item.copyWith(
-                  expirationDate: DateTime.now().add(const Duration(days: 90)),
-                ));
-              }
-              Navigator.pop(context);
-            },
-            child: const Text('+90 天'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (onRenew != null) {
-                onRenew!(item.copyWith(
-                  expirationDate: DateTime.now().add(const Duration(days: 180)),
-                ));
-              }
-              Navigator.pop(context);
-            },
-            child: const Text('+180 天'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (onRenew != null) {
-                onRenew!(item.copyWith(
-                  expirationDate: DateTime.now().add(const Duration(days: 365)),
-                ));
-              }
-              Navigator.pop(context);
-            },
-            child: const Text('+365 天'),
+            child: const Text('确定'),
           ),
         ],
       ),
@@ -187,7 +204,7 @@ class ItemCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'x${item.quantity}',
+                          'x${item.quantity.toString()}',
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.grey,
@@ -214,7 +231,7 @@ class ItemCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (_needsRenew && onRenew != null)
+              if (onRenew != null && (item.expirationDays != null || item.expirationDate != null))
                 IconButton(
                   icon: Icon(
                     Icons.refresh,
