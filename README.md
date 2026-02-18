@@ -1,17 +1,57 @@
-# storage_app
+# 收纳 (Storage App)
 
-A new Flutter project.
+一款简洁的物品收纳管理应用，帮助你轻松管理家中物品的位置和保质期，再也不用担心找不到东西或错过物品保质期。
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## 核心功能
 
-A few resources to get you started if this is your first Flutter project:
+### 📦 物品管理
+- 添加、编辑、删除物品
+- 支持按名称搜索物品
+- 分类筛选：食品、药品、化妆品、日用品、其他
+- 滑动删除物品
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+### 📍 位置管理
+- 预设位置：冰箱、橱柜、抽屉、柜子、货架
+- 自定义添加新位置
+- 查看每个位置的物品列表
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### ⏰ 保质期追踪
+- 支持两种保质期计算方式：生产日期+天数 或 直接到期日期
+- 智能状态提醒：
+  - 🟢 绿色：新鲜
+  - 🟡 黄色：即将过期（默认30天）
+  - 🟠 橙色：紧急提醒（默认7天）
+  - 🔴 红色：已过期
+- 滑动快速重置保质期（+30/60/90/180/365天）
+
+### 📊 统计面板
+- 按分类统计物品数量
+- 按位置统计物品数量
+- 直观了解物品分布
+
+### ⚙️ 个性化设置
+- 主题模式：浅色/深色/跟随系统
+- 自定义提醒阈值
+
+---
+
+## 技术栈
+
+- **Flutter** - 跨平台移动开发框架
+- **Provider** - 状态管理
+- **SQLite** - 本地数据存储
+- **Material Design 3** - 界面设计
+
+---
+
+## 版本
+
+当前版本：1.1.5
+
+---
+
+## 许可证
+
+MIT License
