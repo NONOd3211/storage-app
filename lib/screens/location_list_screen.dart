@@ -211,24 +211,27 @@ class _LocationListScreenState extends State<LocationListScreen> {
         .toList();
 
     if (relatedItems.isNotEmpty) {
-      // 有关联物品，显示警告
+      // 有关联物品，提示将同时删除所有物品
       showDialog(
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(
           title: const Row(
             children: [
-              Icon(Icons.warning, color: Colors.orange),
+              Icon(Icons.warning, color: Colors.red),
               SizedBox(width: 8),
-              Text('无法删除'),
+              Text('确认删除'),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('位置 "${location.name}" 下有 ${relatedItems.length} 个物品，无法删除。'),
+              Text('位置 "${location.name}" 下有 ${relatedItems.length} 个物品。'),
               const SizedBox(height: 12),
-              const Text('请先处理以下物品：'),
+              const Text(
+                '删除该位置将同时删除以下所有物品：',
+                style: TextStyle(fontWeight: FontWeight.w500),
+              ),
               const SizedBox(height: 8),
               ConstrainedBox(
                 constraints: const BoxConstraints(maxHeight: 150),
@@ -241,7 +244,7 @@ class _LocationListScreenState extends State<LocationListScreen> {
                       dense: true,
                       leading: const Icon(Icons.inventory_2, size: 20),
                       title: Text(item.name),
-                      subtitle: Text(item.category.label),
+                      subtitle: Text('x${item.quantity}'),
                       contentPadding: EdgeInsets.zero,
                     );
                   },
@@ -256,8 +259,27 @@ class _LocationListScreenState extends State<LocationListScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('知道了'),
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () {
+                // 删除所有关联物品
+                for (final item in relatedItems) {
+                  itemVM.deleteItem(item);
+                }
+                // 删除位置
+                context.read<LocationViewModel>().deleteLocation(location);
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('已删除位置 "${location.name}" 及 ${relatedItems.length} 个物品'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: const Text('确认删除'),
             ),
           ],
         ),
@@ -266,18 +288,24 @@ class _LocationListScreenState extends State<LocationListScreen> {
       // 无关联物品，直接删除
       showDialog(
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(
           title: const Text('删除位置'),
           content: Text('确定要删除位置 "${location.name}" 吗？'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('取消'),
             ),
             TextButton(
               onPressed: () {
                 context.read<LocationViewModel>().deleteLocation(location);
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('已删除位置 "${location.name}"'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
               },
               style: TextButton.styleFrom(foregroundColor: Colors.red),
               child: const Text('删除'),
