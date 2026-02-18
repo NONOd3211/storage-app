@@ -217,7 +217,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 16),
         const Divider(),
         const SizedBox(height: 8),
-        const Text('作者：NONOd'),
+        const Text('作者：Ice Wraith'),
       ],
     );
   }
