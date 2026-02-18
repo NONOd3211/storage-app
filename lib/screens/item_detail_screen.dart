@@ -153,6 +153,7 @@ class ItemDetailScreen extends StatelessWidget {
                   _buildInfoRow('名称', item.name),
                   _buildInfoRow('分类', item.category.label),
                   _buildInfoRow('存放位置', item.storageLocation),
+                  _buildInfoRow('份数', '${item.quantity}'),
                   if (item.productionDate != null)
                     _buildInfoRow(
                       '生产日期',

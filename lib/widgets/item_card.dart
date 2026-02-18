@@ -180,6 +180,20 @@ class ItemCard extends StatelessWidget {
                             color: Colors.grey,
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          '•',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'x${item.quantity}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ],
                     ),
                     if (days != null) ...[

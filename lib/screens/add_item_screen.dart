@@ -17,6 +17,7 @@ class AddItemScreen extends StatefulWidget {
 class _AddItemScreenState extends State<AddItemScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _quantityController = TextEditingController(text: '1');
   final _notesController = TextEditingController();
 
   ItemCategory _category = ItemCategory.other;
@@ -41,6 +42,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
   void _loadEditingItem(Item item) {
     _nameController.text = item.name;
+    _quantityController.text = item.quantity.toString();
     _category = item.category;
     _storageLocation = item.storageLocation;
     _notesController.text = item.notes ?? '';
@@ -59,6 +61,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _quantityController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -122,6 +125,25 @@ class _AddItemScreenState extends State<AddItemScreen> {
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return '请输入物品名称';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _quantityController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(
+                        labelText: '份数',
+                        border: OutlineInputBorder(),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return '请输入份数';
+                        }
+                        final quantity = int.tryParse(value);
+                        if (quantity == null || quantity < 1) {
+                          return '请输入有效的份数';
                         }
                         return null;
                       },
@@ -378,11 +400,14 @@ class _AddItemScreenState extends State<AddItemScreen> {
   void _saveItem() {
     if (!_formKey.currentState!.validate()) return;
 
+    final quantity = int.tryParse(_quantityController.text) ?? 1;
+
     final item = Item(
       id: widget.editingItem?.id ?? const Uuid().v4(),
       name: _nameController.text,
       category: _category,
       storageLocation: _storageLocation,
+      quantity: quantity,
       productionDate: _useProductionDate ? _productionDate : null,
       expirationDays: _useProductionDate ? _expirationDays : null,
       expirationDate: _useProductionDate ? null : _expirationDate,

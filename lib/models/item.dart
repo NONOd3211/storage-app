@@ -41,6 +41,7 @@ class Item {
   String name;
   ItemCategory category;
   String storageLocation;
+  int quantity;
   DateTime? productionDate;
   int? expirationDays;
   DateTime? expirationDate;
@@ -53,6 +54,7 @@ class Item {
     required this.name,
     required this.category,
     required this.storageLocation,
+    this.quantity = 1,
     this.productionDate,
     this.expirationDays,
     this.expirationDate,
@@ -91,6 +93,7 @@ class Item {
       'name': name,
       'category': category.name,
       'storageLocation': storageLocation,
+      'quantity': quantity,
       'productionDate': productionDate?.millisecondsSinceEpoch,
       'expirationDays': expirationDays,
       'expirationDate': expirationDate?.millisecondsSinceEpoch,
@@ -106,6 +109,7 @@ class Item {
       name: map['name'],
       category: ItemCategory.fromString(map['category']),
       storageLocation: map['storageLocation'],
+      quantity: map['quantity'] ?? 1,
       productionDate: map['productionDate'] != null
           ? DateTime.fromMillisecondsSinceEpoch(map['productionDate'])
           : null,
@@ -124,6 +128,7 @@ class Item {
     String? name,
     ItemCategory? category,
     String? storageLocation,
+    int? quantity,
     DateTime? productionDate,
     int? expirationDays,
     DateTime? expirationDate,
@@ -136,6 +141,7 @@ class Item {
       name: name ?? this.name,
       category: category ?? this.category,
       storageLocation: storageLocation ?? this.storageLocation,
+      quantity: quantity ?? this.quantity,
       productionDate: productionDate ?? this.productionDate,
       expirationDays: expirationDays ?? this.expirationDays,
       expirationDate: expirationDate ?? this.expirationDate,
