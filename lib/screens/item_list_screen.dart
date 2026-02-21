@@ -206,13 +206,13 @@ class _ItemListScreenState extends State<ItemListScreen> {
                               ),
                             );
                           },
-                          onRenew: (renewedItem) {
-                            context.read<ItemViewModel>().updateItem(renewedItem);
+                          onRenew: (renewedItem) async {
+                            await context.read<ItemViewModel>().updateItem(renewedItem);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                              content: Text('${renewedItem.name} 已重置保质期'),
-                              duration: const Duration(seconds: 1),
-                            ),
+                                content: Text('${renewedItem.name} 已重置保质期'),
+                                duration: const Duration(seconds: 1),
+                              ),
                             );
                           },
                         ),

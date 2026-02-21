@@ -4,7 +4,7 @@ import '../models/item.dart';
 class ItemCard extends StatelessWidget {
   final Item item;
   final VoidCallback onTap;
-  final Function(Item)? onRenew;
+  final Future<void> Function(Item)? onRenew;
 
   const ItemCard({
     super.key,
@@ -77,7 +77,7 @@ class ItemCard extends StatelessWidget {
     );
   }
 
-  void _renew(BuildContext dialogContext, int days) {
+  void _renew(BuildContext dialogContext, int days) async {
     if (onRenew != null) {
       // 直接创建新对象，清除生产日期和保质期天数，只保留到期日期
       final renewedItem = Item(
@@ -93,7 +93,7 @@ class ItemCard extends StatelessWidget {
         createdAt: item.createdAt,
         updatedAt: DateTime.now(),
       );
-      onRenew!(renewedItem);
+      await onRenew!(renewedItem);
     }
     Navigator.pop(dialogContext);
   }

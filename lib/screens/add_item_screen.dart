@@ -387,7 +387,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
             // 保存按钮
             ElevatedButton(
-              onPressed: _saveItem,
+              onPressed: () async { await _saveItem(); },
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: Theme.of(context).primaryColor,
@@ -401,7 +401,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
     );
   }
 
-  void _saveItem() {
+  Future<void> _saveItem() async {
     if (!_formKey.currentState!.validate()) return;
 
     final quantity = int.tryParse(_quantityController.text) ?? 1;
@@ -423,9 +423,9 @@ class _AddItemScreenState extends State<AddItemScreen> {
     final viewModel = context.read<ItemViewModel>();
 
     if (isEditing) {
-      viewModel.updateItem(item);
+      await viewModel.updateItem(item);
     } else {
-      viewModel.addItem(item);
+      await viewModel.addItem(item);
     }
 
     Navigator.pop(context);
