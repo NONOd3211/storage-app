@@ -27,7 +27,10 @@ class ItemDetailScreen extends StatelessWidget {
                 MaterialPageRoute(
                   builder: (context) => AddItemScreen(editingItem: item),
                 ),
-              );
+              ).then((_) {
+                // 返回后刷新数据
+                context.read<ItemViewModel>().loadItems();
+              });
             },
           ),
           IconButton(
