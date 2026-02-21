@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../main.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -13,6 +14,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late int _warningDays;
   late int _urgentDays;
   late bool _notificationEnabled;
+  String _appVersion = '';
 
   @override
   void initState() {
@@ -21,6 +23,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _warningDays = settingsService.warningDays;
     _urgentDays = settingsService.urgentDays;
     _notificationEnabled = settingsService.notificationEnabled;
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _appVersion = packageInfo.version;
+    });
   }
 
   @override
@@ -88,7 +98,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text('收纳'),
-            subtitle: const Text('版本 1.1.8'),
+            subtitle: Text(_appVersion.isEmpty ? '版本获取中...' : '版本 $_appVersion'),
             onTap: _showAboutDialog,
           ),
         ],
