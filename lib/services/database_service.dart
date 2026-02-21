@@ -22,16 +22,25 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    // 保持向后兼容：确保 items 表包含 quantity 列。
     if (oldVersion < 2) {
-      // 添加 quantity 字段
       await db.execute('ALTER TABLE items ADD COLUMN quantity INTEGER DEFAULT 1');
+    }
+
+    if (oldVersion < 3) {
+      // 有些旧数据库可能已经被标记为 version 2 但未包含该列，先检查再添加
+      final List<Map<String, dynamic>> cols = await db.rawQuery("PRAGMA table_info('items')");
+      final hasQuantity = cols.any((col) => col['name'] == 'quantity');
+      if (!hasQuantity) {
+        await db.execute('ALTER TABLE items ADD COLUMN quantity INTEGER DEFAULT 1');
+      }
     }
   }
 
@@ -42,6 +51,7 @@ class DatabaseService {
         name TEXT NOT NULL,
         category TEXT NOT NULL,
         storageLocation TEXT NOT NULL,
+        quantity INTEGER NOT NULL DEFAULT 1,
         productionDate INTEGER,
         expirationDays INTEGER,
         expirationDate INTEGER,
