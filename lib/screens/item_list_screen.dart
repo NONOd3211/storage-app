@@ -189,8 +189,10 @@ class _ItemListScreenState extends State<ItemListScreen> {
       itemBuilder: (context, index) {
         final item = items[index];
         final isSelected = viewModel.isSelected(item.id);
+        // 使用 ViewModel 获取基于用户设置的状态
+        final status = viewModel.getItemStatus(item);
 
-        return _buildItemTile(context, viewModel, item, isSelectionMode, isSelected);
+        return _buildItemTile(context, viewModel, item, status, isSelectionMode, isSelected);
       },
     );
   }
@@ -199,6 +201,7 @@ class _ItemListScreenState extends State<ItemListScreen> {
     BuildContext context,
     ItemViewModel viewModel,
     Item item,
+    ExpirationStatus status,
     bool isSelectionMode,
     bool isSelected,
   ) {
@@ -218,7 +221,7 @@ class _ItemListScreenState extends State<ItemListScreen> {
             width: 12,
             height: 12,
             decoration: BoxDecoration(
-              color: _getStatusColor(item.expirationStatus),
+              color: _getStatusColor(status),
               shape: BoxShape.circle,
             ),
           ),
@@ -280,6 +283,7 @@ class _ItemListScreenState extends State<ItemListScreen> {
             child: ItemCard(
               key: ValueKey(item.id),
               item: item,
+              status: status,
               onTap: () {
                 Navigator.push(
                   context,

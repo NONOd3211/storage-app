@@ -43,13 +43,15 @@ class ItemDetailScreen extends StatelessWidget {
         builder: (context, viewModel, child) {
           // 从列表中获取最新的物品数据
           final latestItem = viewModel.items.where((i) => i.id == item.id).firstOrNull ?? item;
+          // 使用 ViewModel 获取基于用户设置的状态
+          final status = viewModel.getItemStatus(latestItem);
 
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
               // 状态卡片
               Card(
-                color: _getStatusColor(latestItem.expirationStatus).withOpacity(0.1),
+                color: _getStatusColor(status).withValues(alpha: 0.1),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -70,7 +72,7 @@ class ItemDetailScreen extends StatelessWidget {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: _getStatusColor(latestItem.expirationStatus).withOpacity(0.2),
+                              color: _getStatusColor(status).withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Row(
@@ -80,15 +82,15 @@ class ItemDetailScreen extends StatelessWidget {
                                   width: 8,
                                   height: 8,
                                   decoration: BoxDecoration(
-                                    color: _getStatusColor(latestItem.expirationStatus),
+                                    color: _getStatusColor(status),
                                     shape: BoxShape.circle,
                                   ),
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  _getStatusText(latestItem.expirationStatus),
+                                  _getStatusText(status),
                                   style: TextStyle(
-                                    color: _getStatusColor(latestItem.expirationStatus),
+                                    color: _getStatusColor(status),
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -109,7 +111,7 @@ class ItemDetailScreen extends StatelessWidget {
                           latestItem.daysUntilExpiration! < 0
                               ? '${-latestItem.daysUntilExpiration!} 天（已过期）'
                               : '${latestItem.daysUntilExpiration} 天',
-                          valueColor: _getStatusColor(latestItem.expirationStatus),
+                          valueColor: _getStatusColor(status),
                         ),
                     ],
                   ),

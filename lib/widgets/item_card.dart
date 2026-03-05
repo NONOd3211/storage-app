@@ -3,16 +3,20 @@ import '../models/item.dart';
 
 class ItemCard extends StatelessWidget {
   final Item item;
+  final ExpirationStatus? status;
   final VoidCallback onTap;
 
   const ItemCard({
     super.key,
     required this.item,
+    this.status,
     required this.onTap,
   });
 
   Color get _statusColor {
-    switch (item.expirationStatus) {
+    // 如果传入了 status 则使用，否则使用默认值计算
+    final effectiveStatus = status ?? item.expirationStatus;
+    switch (effectiveStatus) {
       case ExpirationStatus.fresh:
         return Colors.green;
       case ExpirationStatus.warning:

@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import '../models/item.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
+import '../services/settings_service.dart';
+import '../main.dart';
 
 class ItemViewModel extends ChangeNotifier {
   final DatabaseService _database = DatabaseService();
@@ -143,31 +145,55 @@ class ItemViewModel extends ChangeNotifier {
   // 检查物品是否被选中
   bool isSelected(String itemId) => _selectedIds.contains(itemId);
 
+  // 获取使用用户设置阈值的物品状态
+  ExpirationStatus getItemStatus(Item item) {
+    return item.getExpirationStatus(
+      warningDays: settingsService.warningDays,
+      urgentDays: settingsService.urgentDays,
+    );
+  }
+
   Future<List<Item>> searchItems(String query) async {
     return await _database.searchItems(query);
   }
 
   List<Item> get urgentItems {
+    final warningDays = settingsService.warningDays;
+    final urgentDays = settingsService.urgentDays;
     return _items
-        .where((item) =>
-            item.expirationStatus == ExpirationStatus.urgent ||
-            item.expirationStatus == ExpirationStatus.expired)
+        .where((item) {
+          final status = item.getExpirationStatus(
+            warningDays: warningDays,
+            urgentDays: urgentDays,
+          );
+          return status == ExpirationStatus.urgent ||
+                 status == ExpirationStatus.expired;
+        })
         .toList();
   }
 
-  // 获取某个位置下物品的最紧急状态
+  // 获取某个位置下物品的最紧急状态（使用用户设置）
   ExpirationStatus? getLocationStatus(String locationName) {
+    final warningDays = settingsService.warningDays;
+    final urgentDays = settingsService.urgentDays;
+
     final locationItems = _items.where((item) => item.storageLocation == locationName);
     if (locationItems.isEmpty) return null;
 
     // 优先级：expired > urgent > warning > fresh
-    bool hasExpired = locationItems.any((item) => item.expirationStatus == ExpirationStatus.expired);
+    bool hasExpired = locationItems.any((item) =>
+        item.getExpirationStatus(warningDays: warningDays, urgentDays: urgentDays) ==
+        ExpirationStatus.expired);
     if (hasExpired) return ExpirationStatus.expired;
 
-    bool hasUrgent = locationItems.any((item) => item.expirationStatus == ExpirationStatus.urgent);
+    bool hasUrgent = locationItems.any((item) =>
+        item.getExpirationStatus(warningDays: warningDays, urgentDays: urgentDays) ==
+        ExpirationStatus.urgent);
     if (hasUrgent) return ExpirationStatus.urgent;
 
-    bool hasWarning = locationItems.any((item) => item.expirationStatus == ExpirationStatus.warning);
+    bool hasWarning = locationItems.any((item) =>
+        item.getExpirationStatus(warningDays: warningDays, urgentDays: urgentDays) ==
+        ExpirationStatus.warning);
     if (hasWarning) return ExpirationStatus.warning;
 
     return ExpirationStatus.fresh;

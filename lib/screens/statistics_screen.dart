@@ -40,12 +40,12 @@ class StatisticsBody extends StatelessWidget {
         final items = itemVM.items;
         final locations = locationVM.locations;
 
-        // 统计各类数据
+        // 统计各类数据（使用用户设置的状态阈值）
         final totalItems = items.length;
-        final expiredCount = items.where((i) => i.expirationStatus == ExpirationStatus.expired).length;
-        final urgentCount = items.where((i) => i.expirationStatus == ExpirationStatus.urgent).length;
-        final warningCount = items.where((i) => i.expirationStatus == ExpirationStatus.warning).length;
-        final freshCount = items.where((i) => i.expirationStatus == ExpirationStatus.fresh).length;
+        final expiredCount = items.where((i) => itemVM.getItemStatus(i) == ExpirationStatus.expired).length;
+        final urgentCount = items.where((i) => itemVM.getItemStatus(i) == ExpirationStatus.urgent).length;
+        final warningCount = items.where((i) => itemVM.getItemStatus(i) == ExpirationStatus.warning).length;
+        final freshCount = items.where((i) => itemVM.getItemStatus(i) == ExpirationStatus.fresh).length;
 
         // 分类统计
         final categoryCount = <ItemCategory, int>{};
