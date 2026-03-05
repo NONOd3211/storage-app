@@ -1,5 +1,3 @@
-import '../main.dart';
-
 enum ItemCategory {
   food('食品'),
   medicine('药品'),
@@ -80,17 +78,19 @@ class Item {
     return expDate.difference(DateTime.now()).inDays;
   }
 
-  ExpirationStatus get expirationStatus {
+  // 使用默认阈值，判断保质期状态
+  // warningDays: 30天, urgentDays: 7天
+  ExpirationStatus getExpirationStatus({int warningDays = 30, int urgentDays = 7}) {
     final days = daysUntilExpiration;
     if (days == null) return ExpirationStatus.fresh;
     if (days < 0) return ExpirationStatus.expired;
-    // 使用设置中的阈值
-    final urgentDays = settingsService.urgentDays;
-    final warningDays = settingsService.warningDays;
     if (days < urgentDays) return ExpirationStatus.urgent;
     if (days < warningDays) return ExpirationStatus.warning;
     return ExpirationStatus.fresh;
   }
+
+  // 兼容旧代码的 getter，使用默认阈值
+  ExpirationStatus get expirationStatus => getExpirationStatus();
 
   Map<String, dynamic> toMap() {
     return {

@@ -9,6 +9,9 @@ import 'screens/home_screen.dart';
 
 final SettingsService settingsService = SettingsService();
 
+// 全局访问 key，用于在非 Provider 上下文中获取 SettingsService
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -17,7 +20,7 @@ void main() async {
 
   // Initialize notification service
   final notificationService = NotificationService();
-  await notificationService.initialize();
+  await notificationService.initialize(settingsService: settingsService);
   await notificationService.requestPermission();
 
   runApp(const StorageApp());
@@ -30,6 +33,7 @@ class StorageApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        Provider<SettingsService>.value(value: settingsService),
         ChangeNotifierProvider(create: (_) => ItemViewModel()),
         ChangeNotifierProvider(create: (_) => LocationViewModel()),
       ],

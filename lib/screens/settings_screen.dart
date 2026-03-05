@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import '../main.dart';
+import 'package:provider/provider.dart';
+import '../services/settings_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -19,6 +20,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
+    // 通过 Provider 获取 SettingsService
+    final settingsService = context.read<SettingsService>();
     _themeMode = settingsService.themeMode;
     _warningDays = settingsService.warningDays;
     _urgentDays = settingsService.urgentDays;
@@ -35,6 +38,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final settingsService = context.read<SettingsService>();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('设置'),
@@ -132,6 +137,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showThemeDialog() {
+    final settingsService = context.read<SettingsService>();
+
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
