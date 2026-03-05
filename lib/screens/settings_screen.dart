@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../main.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:provider/provider.dart';
+import '../services/settings_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -13,18 +15,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late int _warningDays;
   late int _urgentDays;
   late bool _notificationEnabled;
+  String _appVersion = '';
 
   @override
   void initState() {
     super.initState();
+    // 通过 Provider 获取 SettingsService
+    final settingsService = context.read<SettingsService>();
     _themeMode = settingsService.themeMode;
     _warningDays = settingsService.warningDays;
     _urgentDays = settingsService.urgentDays;
     _notificationEnabled = settingsService.notificationEnabled;
+    _loadAppVersion();
+  }
+
+  Future<void> _loadAppVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _appVersion = packageInfo.version;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final settingsService = context.read<SettingsService>();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('设置'),
@@ -88,7 +103,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ListTile(
             leading: const Icon(Icons.info_outline),
             title: const Text('收纳'),
-            subtitle: const Text('版本 1.1.8'),
+            subtitle: Text(_appVersion.isEmpty ? '版本获取中...' : '版本 $_appVersion'),
             onTap: _showAboutDialog,
           ),
         ],
@@ -122,6 +137,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showThemeDialog() {
+    final settingsService = context.read<SettingsService>();
+
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(

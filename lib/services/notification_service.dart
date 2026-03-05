@@ -2,7 +2,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 import '../models/item.dart';
-import '../main.dart';
 import 'settings_service.dart';
 
 class NotificationService {
@@ -13,16 +12,16 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _notifications =
       FlutterLocalNotificationsPlugin();
 
-  late SettingsService _settingsService;
+  SettingsService? _settingsService;
 
-  Future<void> initialize() async {
+  Future<void> initialize({SettingsService? settingsService}) async {
     tz_data.initializeTimeZones();
 
     const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
     const initSettings = InitializationSettings(android: androidSettings);
     await _notifications.initialize(initSettings);
 
-    // Use global settingsService instance
+    // Use provided settingsService or global instance
     _settingsService = settingsService;
   }
 
@@ -38,14 +37,14 @@ class NotificationService {
 
   Future<void> scheduleNotification(Item item) async {
     // 检查通知是否启用
-    if (!_settingsService.notificationEnabled) return;
+    if (_settingsService == null || !_settingsService!.notificationEnabled) return;
 
     final expirationDate = item.calculatedExpirationDate;
     if (expirationDate == null) return;
 
     final daysUntil = item.daysUntilExpiration ?? 0;
-    final warningDays = _settingsService.warningDays;
-    final urgentDays = _settingsService.urgentDays;
+    final warningDays = _settingsService!.warningDays;
+    final urgentDays = _settingsService!.urgentDays;
 
     // 如果剩余天数大于警告阈值，不发送通知
     if (daysUntil > warningDays) return;

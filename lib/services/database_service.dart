@@ -30,7 +30,6 @@ class DatabaseService {
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      // 添加 quantity 字段
       await db.execute('ALTER TABLE items ADD COLUMN quantity INTEGER DEFAULT 1');
     }
   }

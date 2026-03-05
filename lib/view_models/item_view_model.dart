@@ -16,6 +16,12 @@ class ItemViewModel extends ChangeNotifier {
   ItemCategory? _selectedCategory;
   ItemCategory? get selectedCategory => _selectedCategory;
 
+  // 批量选择状态
+  final Set<String> _selectedIds = {};
+  Set<String> get selectedIds => _selectedIds;
+  bool get isSelectionMode => _selectedIds.isNotEmpty;
+  int get selectedCount => _selectedIds.length;
+
   List<Item> get filteredItems {
     List<Item> result;
 
@@ -81,6 +87,61 @@ class ItemViewModel extends ChangeNotifier {
     await _notificationService.cancelNotifications(item);
     await loadItems();
   }
+
+  // 批量删除 - 优化版本
+  Future<int> deleteSelectedItems() async {
+    // 获取要删除的 ID 列表
+    final idsToDelete = _selectedIds.toList();
+
+    if (idsToDelete.isEmpty) {
+      return 0;
+    }
+
+    // 遍历删除
+    for (final id in idsToDelete) {
+      try {
+        final item = _items.firstWhere((i) => i.id == id);
+        await _database.deleteItem(item);
+        await _notificationService.cancelNotifications(item);
+      } catch (e) {
+        debugPrint('删除物品 $id 失败: $e');
+      }
+    }
+
+    // 清空选择并重新加载
+    _selectedIds.clear();
+    await loadItems();
+
+    return idsToDelete.length;
+  }
+
+  // 选择/取消选择单个物品
+  void toggleSelection(String itemId) {
+    if (_selectedIds.contains(itemId)) {
+      _selectedIds.remove(itemId);
+    } else {
+      _selectedIds.add(itemId);
+    }
+    notifyListeners();
+  }
+
+  // 全选当前列表中的物品
+  void selectAll() {
+    _selectedIds.clear();
+    for (final item in filteredItems) {
+      _selectedIds.add(item.id);
+    }
+    notifyListeners();
+  }
+
+  // 取消全选
+  void clearSelection() {
+    _selectedIds.clear();
+    notifyListeners();
+  }
+
+  // 检查物品是否被选中
+  bool isSelected(String itemId) => _selectedIds.contains(itemId);
 
   Future<List<Item>> searchItems(String query) async {
     return await _database.searchItems(query);
