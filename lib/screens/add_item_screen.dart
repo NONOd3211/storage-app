@@ -18,6 +18,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _quantityController = TextEditingController(text: '1');
+  final _expirationDaysController = TextEditingController(text: '30');
   final _notesController = TextEditingController();
 
   ItemCategory _category = ItemCategory.other;
@@ -59,6 +60,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
       _useProductionDate = true;
       _productionDate = item.productionDate!;
       _expirationDays = item.expirationDays!;
+      _expirationDaysController.text = _expirationDays.toString();
     } else if (item.expirationDate != null) {
       _useProductionDate = false;
       _expirationDate = item.expirationDate!;
@@ -70,6 +72,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
   void dispose() {
     _nameController.dispose();
     _quantityController.dispose();
+    _expirationDaysController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -268,7 +271,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                             SizedBox(
                               width: 100,
                               child: TextFormField(
-                                initialValue: _expirationDays.toString(),
+                                controller: _expirationDaysController,
                                 keyboardType: TextInputType.number,
                                 decoration: const InputDecoration(
                                   hintText: '天数',
