@@ -22,7 +22,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 4,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -30,7 +30,27 @@ class DatabaseService {
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
-      await db.execute('ALTER TABLE items ADD COLUMN quantity INTEGER DEFAULT 1');
+      await db.execute('ALTER TABLE items ADD COLUMN quantity INTEGER NOT NULL DEFAULT 1');
+    }
+
+    // Some v2 installs were created without `quantity` due to an incomplete onCreate schema.
+    if (oldVersion < 3) {
+      final columns = await db.rawQuery('PRAGMA table_info(items)');
+      final hasQuantity = columns.any((column) => column['name'] == 'quantity');
+      if (!hasQuantity) {
+        await db.execute('ALTER TABLE items ADD COLUMN quantity INTEGER NOT NULL DEFAULT 1');
+      }
+    }
+
+    if (oldVersion < 4) {
+      final columns = await db.rawQuery('PRAGMA table_info(items)');
+      final hasLocationId = columns.any((column) => column['name'] == 'storageLocationId');
+      if (!hasLocationId) {
+        await db.execute('ALTER TABLE items ADD COLUMN storageLocationId TEXT');
+      }
+
+      await _ensureUncategorizedLocation(db);
+      await _migrateItemLocationIds(db);
     }
   }
 
@@ -40,7 +60,9 @@ class DatabaseService {
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         category TEXT NOT NULL,
+        storageLocationId TEXT NOT NULL,
         storageLocation TEXT NOT NULL,
+        quantity INTEGER NOT NULL DEFAULT 1,
         productionDate INTEGER,
         expirationDays INTEGER,
         expirationDate INTEGER,
@@ -64,6 +86,42 @@ class DatabaseService {
     for (final location in StorageLocation.presetLocations) {
       await db.insert('locations', location.toMap());
     }
+  }
+
+  Future<void> _ensureUncategorizedLocation(Database db) async {
+    final existing = await db.query(
+      'locations',
+      where: 'id = ?',
+      whereArgs: [StorageLocation.uncategorizedId],
+      limit: 1,
+    );
+    if (existing.isNotEmpty) return;
+
+    final uncategorized = StorageLocation(
+      id: StorageLocation.uncategorizedId,
+      name: '未分类',
+      icon: 'help_outline',
+      isPreset: true,
+    );
+    await db.insert('locations', uncategorized.toMap());
+  }
+
+  Future<void> _migrateItemLocationIds(Database db) async {
+    final locations = await db.query('locations', columns: ['id', 'name']);
+    for (final location in locations) {
+      await db.update(
+        'items',
+        {'storageLocationId': location['id']},
+        where: "(storageLocationId IS NULL OR storageLocationId = '') AND storageLocation = ?",
+        whereArgs: [location['name']],
+      );
+    }
+
+    await db.update(
+      'items',
+      {'storageLocationId': StorageLocation.uncategorizedId},
+      where: "storageLocationId IS NULL OR storageLocationId = ''",
+    );
   }
 
   // Item CRUD

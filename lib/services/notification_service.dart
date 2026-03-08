@@ -13,6 +13,10 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   SettingsService? _settingsService;
+  static const String _warningKey = 'warning';
+  static const String _urgentKey = 'urgent';
+  static const String _oneDayKey = 'one_day';
+  static const String _dueKey = 'due';
 
   Future<void> initialize({SettingsService? settingsService}) async {
     tz_data.initializeTimeZones();
@@ -42,56 +46,62 @@ class NotificationService {
     final expirationDate = item.calculatedExpirationDate;
     if (expirationDate == null) return;
 
-    final daysUntil = item.daysUntilExpiration ?? 0;
     final warningDays = _settingsService!.warningDays;
     final urgentDays = _settingsService!.urgentDays;
 
-    // 如果剩余天数大于警告阈值，不发送通知
-    if (daysUntil > warningDays) return;
+    await cancelNotifications(item);
 
-    // 即将过期提醒（剩余天数 = warningDays 时提醒）
-    if (daysUntil == warningDays) {
-      await _scheduleNotification(
-        item: item,
+    final reminders = <_Reminder>[
+      _Reminder(
+        key: _warningKey,
+        enabled: _settingsService!.warningReminderEnabled,
         daysBefore: warningDays,
         title: '即将过期提醒',
         body: '${item.name} 还有$warningDays天就要过期了，请尽快使用！',
-      );
-    }
-
-    // 紧急提醒（剩余天数 = urgentDays 时提醒）
-    if (daysUntil == urgentDays) {
-      await _scheduleNotification(
-        item: item,
+      ),
+      _Reminder(
+        key: _urgentKey,
+        enabled: _settingsService!.urgentReminderEnabled,
         daysBefore: urgentDays,
         title: '紧急提醒',
         body: '${item.name} 还有$urgentDays天就要过期了，请尽快使用！',
-      );
-    }
-
-    // 明天过期提醒（1天时提醒）
-    if (daysUntil == 1) {
-      await _scheduleNotification(
-        item: item,
+      ),
+      _Reminder(
+        key: _oneDayKey,
+        enabled: _settingsService!.oneDayReminderEnabled,
         daysBefore: 1,
         title: '紧急提醒',
         body: '${item.name} 还有1天就要过期了！',
-      );
+      ),
+      _Reminder(
+        key: _dueKey,
+        enabled: _settingsService!.dueDayReminderEnabled,
+        daysBefore: 0,
+        title: '到期提醒',
+        body: '${item.name} 今天到期，请及时处理！',
+      ),
+    ];
+
+    final deduped = <int, _Reminder>{};
+    for (final reminder in reminders) {
+      if (!reminder.enabled) continue;
+      deduped[reminder.daysBefore] = reminder;
     }
 
-    // 已过期提醒
-    if (daysUntil < 0) {
+    for (final reminder in deduped.values) {
       await _scheduleNotification(
         item: item,
-        daysBefore: 0,
-        title: '物品已过期',
-        body: '${item.name} 已经过期，请及时处理！',
+        key: reminder.key,
+        daysBefore: reminder.daysBefore,
+        title: reminder.title,
+        body: reminder.body,
       );
     }
   }
 
   Future<void> _scheduleNotification({
     required Item item,
+    required String key,
     required int daysBefore,
     required String title,
     required String body,
@@ -125,7 +135,7 @@ class NotificationService {
     final details = NotificationDetails(android: androidDetails);
 
     await _notifications.zonedSchedule(
-      '${item.id}_$daysBefore'.hashCode,
+      '${item.id}_$key'.hashCode,
       title,
       body,
       tz.TZDateTime.from(scheduledDate, tz.local),
@@ -137,13 +147,29 @@ class NotificationService {
   }
 
   Future<void> cancelNotifications(Item item) async {
-    // 取消所有可能的通知
-    for (int i = 0; i <= 30; i++) {
-      await _notifications.cancel('${item.id}_$i'.hashCode);
+    const keys = [_warningKey, _urgentKey, _oneDayKey, _dueKey];
+    for (final key in keys) {
+      await _notifications.cancel('${item.id}_$key'.hashCode);
     }
   }
 
   Future<void> cancelAllNotifications() async {
     await _notifications.cancelAll();
   }
+}
+
+class _Reminder {
+  final String key;
+  final bool enabled;
+  final int daysBefore;
+  final String title;
+  final String body;
+
+  const _Reminder({
+    required this.key,
+    required this.enabled,
+    required this.daysBefore,
+    required this.title,
+    required this.body,
+  });
 }

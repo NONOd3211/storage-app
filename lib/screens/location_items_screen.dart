@@ -5,9 +5,14 @@ import '../widgets/item_card.dart';
 import 'item_detail_screen.dart';
 
 class LocationItemsScreen extends StatefulWidget {
+  final String locationId;
   final String locationName;
 
-  const LocationItemsScreen({super.key, required this.locationName});
+  const LocationItemsScreen({
+    super.key,
+    required this.locationId,
+    required this.locationName,
+  });
 
   @override
   State<LocationItemsScreen> createState() => _LocationItemsScreenState();
@@ -32,7 +37,10 @@ class _LocationItemsScreenState extends State<LocationItemsScreen> {
       body: Consumer<ItemViewModel>(
         builder: (context, viewModel, child) {
           var items = viewModel.items
-              .where((item) => item.storageLocation == widget.locationName)
+              .where((item) =>
+                  item.storageLocationId == widget.locationId ||
+                  (item.storageLocationId.isEmpty &&
+                      item.storageLocation == widget.locationName))
               .toList();
 
           // 按剩余保质期排序（短的在前）

@@ -1,31 +1,27 @@
 import 'package:flutter/material.dart';
 import '../models/item.dart';
+import '../models/expiration_status_ui.dart';
 
 class ItemCard extends StatelessWidget {
   final Item item;
   final ExpirationStatus? status;
   final VoidCallback onTap;
+  final VoidCallback? onDelete;
+  final VoidCallback? onEdit;
 
   const ItemCard({
     super.key,
     required this.item,
     this.status,
     required this.onTap,
+    this.onDelete,
+    this.onEdit,
   });
 
   Color get _statusColor {
     // 如果传入了 status 则使用，否则使用默认值计算
     final effectiveStatus = status ?? item.expirationStatus;
-    switch (effectiveStatus) {
-      case ExpirationStatus.fresh:
-        return Colors.green;
-      case ExpirationStatus.warning:
-        return Colors.yellow.shade700;
-      case ExpirationStatus.urgent:
-        return Colors.orange;
-      case ExpirationStatus.expired:
-        return Colors.red;
-    }
+    return effectiveStatus.color;
   }
 
   @override
@@ -126,10 +122,23 @@ class ItemCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(
-                Icons.chevron_right,
-                color: Colors.grey,
-              ),
+              if (onDelete != null)
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  tooltip: '删除',
+                  onPressed: onDelete,
+                ),
+              if (onEdit != null)
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: '编辑',
+                  onPressed: onEdit,
+                ),
+              if (onDelete == null && onEdit == null)
+                const Icon(
+                  Icons.chevron_right,
+                  color: Colors.grey,
+                ),
             ],
           ),
         ),

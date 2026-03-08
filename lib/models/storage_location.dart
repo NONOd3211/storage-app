@@ -1,4 +1,6 @@
 class StorageLocation {
+  static const String uncategorizedId = 'preset_uncategorized';
+
   final String id;
   String name;
   String? description;
@@ -14,6 +16,12 @@ class StorageLocation {
   });
 
   static final List<StorageLocation> presetLocations = [
+    StorageLocation(
+      id: uncategorizedId,
+      name: '未分类',
+      icon: 'help_outline',
+      isPreset: true,
+    ),
     StorageLocation(id: 'preset_1', name: '冰箱', icon: 'kitchen', isPreset: true),
     StorageLocation(id: 'preset_2', name: '橱柜', icon: 'door_sliding', isPreset: true),
     StorageLocation(id: 'preset_3', name: '抽屉', icon: 'draw', isPreset: true),

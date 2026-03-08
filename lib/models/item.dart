@@ -40,6 +40,7 @@ class Item {
   final String id;
   String name;
   ItemCategory category;
+  String storageLocationId;
   String storageLocation;
   int quantity;
   DateTime? productionDate;
@@ -53,6 +54,7 @@ class Item {
     required this.id,
     required this.name,
     required this.category,
+    this.storageLocationId = '',
     required this.storageLocation,
     this.quantity = 1,
     this.productionDate,
@@ -97,6 +99,7 @@ class Item {
       'id': id,
       'name': name,
       'category': category.name,
+      'storageLocationId': storageLocationId,
       'storageLocation': storageLocation,
       'quantity': quantity,
       'productionDate': productionDate?.millisecondsSinceEpoch,
@@ -113,6 +116,7 @@ class Item {
       id: map['id'],
       name: map['name'],
       category: ItemCategory.fromString(map['category']),
+      storageLocationId: map['storageLocationId'] ?? '',
       storageLocation: map['storageLocation'],
       quantity: map['quantity'] ?? 1,
       productionDate: map['productionDate'] != null
@@ -132,6 +136,7 @@ class Item {
     String? id,
     String? name,
     ItemCategory? category,
+    String? storageLocationId,
     String? storageLocation,
     int? quantity,
     DateTime? productionDate,
@@ -145,6 +150,7 @@ class Item {
       id: id ?? this.id,
       name: name ?? this.name,
       category: category ?? this.category,
+      storageLocationId: storageLocationId ?? this.storageLocationId,
       storageLocation: storageLocation ?? this.storageLocation,
       quantity: quantity ?? this.quantity,
       productionDate: productionDate ?? this.productionDate,

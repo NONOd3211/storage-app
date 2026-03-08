@@ -56,7 +56,11 @@ class StatisticsBody extends StatelessWidget {
         // 位置统计
         final locationCount = <String, int>{};
         for (final location in locations) {
-          locationCount[location.name] = items.where((i) => i.storageLocation == location.name).length;
+          locationCount[location.name] = items
+              .where((i) =>
+                  i.storageLocationId == location.id ||
+                  (i.storageLocationId.isEmpty && i.storageLocation == location.name))
+              .length;
         }
 
         return SingleChildScrollView(

@@ -1,30 +1,37 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:storage_app/main.dart';
+import 'package:storage_app/models/item.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  test('ItemCategory.fromString supports enum name and label', () {
+    expect(ItemCategory.fromString('food'), ItemCategory.food);
+    expect(ItemCategory.fromString('药品'), ItemCategory.medicine);
+    expect(ItemCategory.fromString('unknown'), ItemCategory.other);
+  });
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  test('Expiration status respects warning and urgent thresholds', () {
+    final soonItem = Item(
+      id: '1',
+      name: 'Milk',
+      category: ItemCategory.food,
+      storageLocation: '冰箱',
+      expirationDate: DateTime.now().add(const Duration(days: 5)),
+    );
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    final expiredItem = Item(
+      id: '2',
+      name: 'Yogurt',
+      category: ItemCategory.food,
+      storageLocation: '冰箱',
+      expirationDate: DateTime.now().subtract(const Duration(days: 1)),
+    );
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(
+      soonItem.getExpirationStatus(warningDays: 30, urgentDays: 7),
+      ExpirationStatus.urgent,
+    );
+    expect(
+      expiredItem.getExpirationStatus(warningDays: 30, urgentDays: 7),
+      ExpirationStatus.expired,
+    );
   });
 }

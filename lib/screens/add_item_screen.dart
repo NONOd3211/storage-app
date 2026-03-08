@@ -21,30 +21,38 @@ class _AddItemScreenState extends State<AddItemScreen> {
   final _notesController = TextEditingController();
 
   ItemCategory _category = ItemCategory.other;
-  String _storageLocation = '';
+  String _storageLocationId = '';
   bool _useProductionDate = true;
   DateTime _productionDate = DateTime.now();
   int _expirationDays = 30;
   DateTime _expirationDate = DateTime.now().add(const Duration(days: 30));
+  bool _isSaving = false;
 
   bool get isEditing => widget.editingItem != null;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<LocationViewModel>().loadLocations();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final locationVM = context.read<LocationViewModel>();
+      await locationVM.loadLocations();
       if (widget.editingItem != null) {
-        _loadEditingItem(widget.editingItem!);
+        _loadEditingItem(widget.editingItem!, locationVM);
       }
     });
   }
 
-  void _loadEditingItem(Item item) {
+  void _loadEditingItem(Item item, LocationViewModel locationVM) {
     _nameController.text = item.name;
     _quantityController.text = item.quantity.toString();
     _category = item.category;
-    _storageLocation = item.storageLocation;
+    _storageLocationId = item.storageLocationId;
+    if (_storageLocationId.isEmpty) {
+      final matched = locationVM.locations
+          .where((location) => location.name == item.storageLocation)
+          .firstOrNull;
+      _storageLocationId = matched?.id ?? '';
+    }
     _notesController.text = item.notes ?? '';
 
     if (item.productionDate != null && item.expirationDays != null) {
@@ -174,22 +182,22 @@ class _AddItemScreenState extends State<AddItemScreen> {
                     Consumer<LocationViewModel>(
                       builder: (context, locationVM, _) {
                         return DropdownButtonFormField<String>(
-                          value: _storageLocation.isEmpty
+                          value: _storageLocationId.isEmpty
                               ? null
-                              : _storageLocation,
+                              : _storageLocationId,
                           decoration: const InputDecoration(
                             labelText: '存放位置',
                             border: OutlineInputBorder(),
                           ),
                           items: locationVM.locations.map((loc) {
                             return DropdownMenuItem(
-                              value: loc.name,
+                              value: loc.id,
                               child: Text(loc.name),
                             );
                           }).toList(),
                           onChanged: (value) {
                             setState(() {
-                              _storageLocation = value ?? '';
+                              _storageLocationId = value ?? '';
                             });
                           },
                           validator: (value) {
@@ -386,13 +394,22 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
             // 保存按钮
             ElevatedButton(
-              onPressed: _saveItem,
+              onPressed: _isSaving ? null : _saveItem,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: Theme.of(context).primaryColor,
                 foregroundColor: Colors.white,
               ),
-              child: Text(isEditing ? '保存修改' : '添加物品'),
+              child: _isSaving
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(isEditing ? '保存修改' : '添加物品'),
             ),
           ],
         ),
@@ -400,16 +417,28 @@ class _AddItemScreenState extends State<AddItemScreen> {
     );
   }
 
-  void _saveItem() {
+  Future<void> _saveItem() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_isSaving) return;
 
     final quantity = int.tryParse(_quantityController.text) ?? 1;
+    final locationVM = context.read<LocationViewModel>();
+    final location = locationVM.locations
+        .where((item) => item.id == _storageLocationId)
+        .firstOrNull;
+    if (location == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请选择有效的存放位置')),
+      );
+      return;
+    }
 
     final item = Item(
       id: widget.editingItem?.id ?? const Uuid().v4(),
       name: _nameController.text,
       category: _category,
-      storageLocation: _storageLocation,
+      storageLocationId: location.id,
+      storageLocation: location.name,
       quantity: quantity,
       productionDate: _useProductionDate ? _productionDate : null,
       expirationDays: _useProductionDate ? _expirationDays : null,
@@ -419,14 +448,28 @@ class _AddItemScreenState extends State<AddItemScreen> {
       updatedAt: DateTime.now(),
     );
 
-    final viewModel = context.read<ItemViewModel>();
+    setState(() => _isSaving = true);
 
-    if (isEditing) {
-      viewModel.updateItem(item);
-    } else {
-      viewModel.addItem(item);
+    try {
+      final viewModel = context.read<ItemViewModel>();
+
+      if (isEditing) {
+        await viewModel.updateItem(item);
+      } else {
+        await viewModel.addItem(item);
+      }
+
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('保存失败，请重试')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
-
-    Navigator.pop(context);
   }
 }

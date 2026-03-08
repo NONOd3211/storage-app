@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
-import '../models/item.dart';
 import '../models/storage_location.dart';
+import '../models/expiration_status_ui.dart';
 import '../view_models/item_view_model.dart';
 import '../view_models/location_view_model.dart';
 import 'location_items_screen.dart';
@@ -67,7 +67,8 @@ class _LocationListScreenState extends State<LocationListScreen> {
             itemCount: locations.length,
             itemBuilder: (context, index) {
               final location = locations[index];
-              final locationStatus = itemVM.getLocationStatus(location.name);
+              final locationStatus =
+                  itemVM.getLocationStatus(location.id, fallbackName: location.name);
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 child: ListTile(
@@ -87,7 +88,7 @@ class _LocationListScreenState extends State<LocationListScreen> {
                           width: 10,
                           height: 10,
                           decoration: BoxDecoration(
-                            color: _getStatusColor(locationStatus),
+                            color: locationStatus.color,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -119,6 +120,7 @@ class _LocationListScreenState extends State<LocationListScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => LocationItemsScreen(
+                          locationId: location.id,
                           locationName: location.name,
                         ),
                       ),
@@ -133,19 +135,6 @@ class _LocationListScreenState extends State<LocationListScreen> {
     );
   }
 
-  Color _getStatusColor(ExpirationStatus status) {
-    switch (status) {
-      case ExpirationStatus.fresh:
-        return Colors.green;
-      case ExpirationStatus.warning:
-        return Colors.yellow.shade700;
-      case ExpirationStatus.urgent:
-        return Colors.orange;
-      case ExpirationStatus.expired:
-        return Colors.red;
-    }
-  }
-
   IconData _getIconData(String iconName) {
     switch (iconName) {
       case 'kitchen':
@@ -158,6 +147,8 @@ class _LocationListScreenState extends State<LocationListScreen> {
         return Icons.inventory_2;
       case 'shelves':
         return Icons.shelves;
+      case 'help_outline':
+        return Icons.help_outline;
       default:
         return Icons.place;
     }
@@ -207,7 +198,9 @@ class _LocationListScreenState extends State<LocationListScreen> {
   void _showDeleteDialog(BuildContext context, StorageLocation location) {
     final itemVM = context.read<ItemViewModel>();
     final relatedItems = itemVM.items
-        .where((item) => item.storageLocation == location.name)
+        .where((item) =>
+            item.storageLocationId == location.id ||
+            (item.storageLocationId.isEmpty && item.storageLocation == location.name))
         .toList();
 
     if (relatedItems.isNotEmpty) {
@@ -263,13 +256,15 @@ class _LocationListScreenState extends State<LocationListScreen> {
               child: const Text('取消'),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
+                final locationVM = context.read<LocationViewModel>();
                 // 删除所有关联物品
                 for (final item in relatedItems) {
-                  itemVM.deleteItem(item);
+                  await itemVM.deleteItem(item);
                 }
                 // 删除位置
-                context.read<LocationViewModel>().deleteLocation(location);
+                await locationVM.deleteLocation(location);
+                if (!context.mounted) return;
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -297,8 +292,9 @@ class _LocationListScreenState extends State<LocationListScreen> {
               child: const Text('取消'),
             ),
             TextButton(
-              onPressed: () {
-                context.read<LocationViewModel>().deleteLocation(location);
+              onPressed: () async {
+                await context.read<LocationViewModel>().deleteLocation(location);
+                if (!context.mounted) return;
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(

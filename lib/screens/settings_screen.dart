@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import '../services/settings_service.dart';
+import '../services/notification_service.dart';
+import '../view_models/item_view_model.dart';
+import 'reminder_settings_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -63,27 +66,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('启用通知'),
             subtitle: Text(_notificationEnabled ? '已开启' : '已关闭'),
             value: _notificationEnabled,
-            onChanged: (value) {
+            onChanged: (value) async {
               setState(() => _notificationEnabled = value);
-              settingsService.setNotificationEnabled(value);
+              await settingsService.setNotificationEnabled(value);
+              if (value) {
+                await context.read<ItemViewModel>().rescheduleAllNotifications();
+              } else {
+                await NotificationService().cancelAllNotifications();
+              }
             },
+          ),
+          ListTile(
+            leading: const Icon(Icons.tune),
+            title: const Text('提醒项设置'),
+            subtitle: Text(_notificationEnabled ? '配置四类提醒开关' : '请先开启通知'),
+            enabled: _notificationEnabled,
+            onTap: _notificationEnabled
+                ? () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ReminderSettingsScreen(),
+                      ),
+                    );
+                  }
+                : null,
           ),
           ListTile(
             leading: const Icon(Icons.warning_amber),
             title: const Text('即将过期提醒'),
             subtitle: Text('$_warningDays 天'),
-            onTap: () => _showDaysDialog('即将过期提醒 (天)', _warningDays, (value) {
+            onTap: () => _showDaysDialog('即将过期提醒 (天)', _warningDays, (value) async {
               setState(() => _warningDays = value);
-              settingsService.setWarningDays(value);
+              await settingsService.setWarningDays(value);
+              await context.read<ItemViewModel>().rescheduleAllNotifications();
             }),
           ),
           ListTile(
             leading: const Icon(Icons.error_outline),
             title: const Text('紧急提醒'),
             subtitle: Text('$_urgentDays 天'),
-            onTap: () => _showDaysDialog('紧急提醒 (天)', _urgentDays, (value) {
+            onTap: () => _showDaysDialog('紧急提醒 (天)', _urgentDays, (value) async {
               setState(() => _urgentDays = value);
-              settingsService.setUrgentDays(value);
+              await settingsService.setUrgentDays(value);
+              await context.read<ItemViewModel>().rescheduleAllNotifications();
             }),
           ),
           Padding(
@@ -170,11 +196,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showDaysDialog(String title, int currentValue, Function(int) onSave) {
+  void _showDaysDialog(
+    String title,
+    int currentValue,
+    Future<void> Function(int) onSave,
+  ) {
     final controller = TextEditingController(text: currentValue.toString());
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(title),
         content: TextField(
           controller: controller,
@@ -186,15 +216,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('取消'),
           ),
           FilledButton(
-            onPressed: () {
+            onPressed: () async {
               final value = int.tryParse(controller.text);
               if (value != null && value > 0) {
-                onSave(value);
-                Navigator.pop(context);
+                await onSave(value);
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
               }
             },
             child: const Text('保存'),
@@ -208,7 +239,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showAboutDialog(
       context: context,
       applicationName: '收纳',
-      applicationVersion: '1.1.8',
+      applicationVersion: _appVersion.isEmpty ? '1.2.1' : _appVersion,
       applicationIcon: const Icon(
         Icons.inventory_2,
         size: 48,

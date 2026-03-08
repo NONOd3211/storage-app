@@ -6,6 +6,10 @@ class SettingsService {
   static const String _warningDaysKey = 'warning_days';
   static const String _urgentDaysKey = 'urgent_days';
   static const String _notificationEnabledKey = 'notification_enabled';
+  static const String _warningReminderEnabledKey = 'warning_reminder_enabled';
+  static const String _urgentReminderEnabledKey = 'urgent_reminder_enabled';
+  static const String _oneDayReminderEnabledKey = 'one_day_reminder_enabled';
+  static const String _dueDayReminderEnabledKey = 'due_day_reminder_enabled';
 
   late SharedPreferences _prefs;
 
@@ -66,5 +70,38 @@ class SettingsService {
 
   Future<void> setNotificationEnabled(bool enabled) async {
     await _prefs.setBool(_notificationEnabledKey, enabled);
+  }
+
+  // 四类提醒开关（默认开启）
+  bool get warningReminderEnabled {
+    return _prefs.getBool(_warningReminderEnabledKey) ?? true;
+  }
+
+  Future<void> setWarningReminderEnabled(bool enabled) async {
+    await _prefs.setBool(_warningReminderEnabledKey, enabled);
+  }
+
+  bool get urgentReminderEnabled {
+    return _prefs.getBool(_urgentReminderEnabledKey) ?? true;
+  }
+
+  Future<void> setUrgentReminderEnabled(bool enabled) async {
+    await _prefs.setBool(_urgentReminderEnabledKey, enabled);
+  }
+
+  bool get oneDayReminderEnabled {
+    return _prefs.getBool(_oneDayReminderEnabledKey) ?? true;
+  }
+
+  Future<void> setOneDayReminderEnabled(bool enabled) async {
+    await _prefs.setBool(_oneDayReminderEnabledKey, enabled);
+  }
+
+  bool get dueDayReminderEnabled {
+    return _prefs.getBool(_dueDayReminderEnabledKey) ?? true;
+  }
+
+  Future<void> setDueDayReminderEnabled(bool enabled) async {
+    await _prefs.setBool(_dueDayReminderEnabledKey, enabled);
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../models/item.dart';
+import '../models/expiration_status_ui.dart';
 import '../view_models/item_view_model.dart';
 import 'add_item_screen.dart';
 
@@ -21,16 +22,19 @@ class ItemDetailScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              final viewModel = context.read<ItemViewModel>();
+              final latestItem =
+                  viewModel.items.where((i) => i.id == item.id).firstOrNull ?? item;
+              await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => AddItemScreen(editingItem: item),
+                  builder: (context) => AddItemScreen(editingItem: latestItem),
                 ),
-              ).then((_) {
-                // 返回后刷新数据
+              );
+              if (context.mounted) {
                 context.read<ItemViewModel>().loadItems();
-              });
+              }
             },
           ),
           IconButton(
@@ -51,7 +55,7 @@ class ItemDetailScreen extends StatelessWidget {
             children: [
               // 状态卡片
               Card(
-                color: _getStatusColor(status).withValues(alpha: 0.1),
+                color: status.color.withValues(alpha: 0.1),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -72,7 +76,7 @@ class ItemDetailScreen extends StatelessWidget {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: _getStatusColor(status).withValues(alpha: 0.2),
+                              color: status.color.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Row(
@@ -82,15 +86,15 @@ class ItemDetailScreen extends StatelessWidget {
                                   width: 8,
                                   height: 8,
                                   decoration: BoxDecoration(
-                                    color: _getStatusColor(status),
+                                    color: status.color,
                                     shape: BoxShape.circle,
                                   ),
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  _getStatusText(status),
+                                  status.label,
                                   style: TextStyle(
-                                    color: _getStatusColor(status),
+                                    color: status.color,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -111,7 +115,7 @@ class ItemDetailScreen extends StatelessWidget {
                           latestItem.daysUntilExpiration! < 0
                               ? '${-latestItem.daysUntilExpiration!} 天（已过期）'
                               : '${latestItem.daysUntilExpiration} 天',
-                          valueColor: _getStatusColor(status),
+                          valueColor: status.color,
                         ),
                     ],
                   ),
@@ -163,32 +167,6 @@ class ItemDetailScreen extends StatelessWidget {
     );
   }
 
-  Color _getStatusColor(ExpirationStatus status) {
-    switch (status) {
-      case ExpirationStatus.fresh:
-        return Colors.green;
-      case ExpirationStatus.warning:
-        return Colors.yellow.shade700;
-      case ExpirationStatus.urgent:
-        return Colors.orange;
-      case ExpirationStatus.expired:
-        return Colors.red;
-    }
-  }
-
-  String _getStatusText(ExpirationStatus status) {
-    switch (status) {
-      case ExpirationStatus.fresh:
-        return '新鲜';
-      case ExpirationStatus.warning:
-        return '注意';
-      case ExpirationStatus.urgent:
-        return '紧迫';
-      case ExpirationStatus.expired:
-        return '已过期';
-    }
-  }
-
   Widget _buildInfoRow(String label, String value, {Color? valueColor}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -233,8 +211,9 @@ class ItemDetailScreen extends StatelessWidget {
             onPressed: () async {
               final viewModel = context.read<ItemViewModel>();
               await viewModel.deleteItem(item);
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Go back to list
+              if (!context.mounted) return;
+              Navigator.pop(context);
+              Navigator.pop(context);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('删除'),

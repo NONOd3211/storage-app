@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import '../models/item.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
-import '../services/settings_service.dart';
 import '../main.dart';
 
 class ItemViewModel extends ChangeNotifier {
@@ -73,21 +72,34 @@ class ItemViewModel extends ChangeNotifier {
 
   Future<void> addItem(Item item) async {
     await _database.insertItem(item);
-    await _notificationService.scheduleNotification(item);
+    await _syncItemNotifications(item);
     await loadItems();
   }
 
   Future<void> updateItem(Item item) async {
     await _database.updateItem(item);
-    await _notificationService.cancelNotifications(item);
-    await _notificationService.scheduleNotification(item);
+    await _syncItemNotifications(item);
     await loadItems();
   }
 
   Future<void> deleteItem(Item item) async {
     await _database.deleteItem(item);
-    await _notificationService.cancelNotifications(item);
+    try {
+      await _notificationService.cancelNotifications(item);
+    } catch (e) {
+      debugPrint('取消通知失败（${item.id}）: $e');
+    }
     await loadItems();
+  }
+
+  Future<void> _syncItemNotifications(Item item) async {
+    try {
+      await _notificationService.cancelNotifications(item);
+      await _notificationService.scheduleNotification(item);
+    } catch (e) {
+      // 保存物品是主流程；通知失败不应导致 UI 提示“保存失败”。
+      debugPrint('同步通知失败（${item.id}）: $e');
+    }
   }
 
   // 批量删除 - 优化版本
@@ -157,6 +169,28 @@ class ItemViewModel extends ChangeNotifier {
     return await _database.searchItems(query);
   }
 
+  Future<void> rescheduleAllNotifications() async {
+    try {
+      await _notificationService.cancelAllNotifications();
+    } catch (e) {
+      debugPrint('取消全部通知失败: $e');
+    }
+    if (!settingsService.notificationEnabled) return;
+
+    if (_items.isEmpty) {
+      _items = await _database.getAllItems();
+      notifyListeners();
+    }
+
+    for (final item in _items) {
+      try {
+        await _notificationService.scheduleNotification(item);
+      } catch (e) {
+        debugPrint('重排通知失败（${item.id}）: $e');
+      }
+    }
+  }
+
   List<Item> get urgentItems {
     final warningDays = settingsService.warningDays;
     final urgentDays = settingsService.urgentDays;
@@ -173,11 +207,16 @@ class ItemViewModel extends ChangeNotifier {
   }
 
   // 获取某个位置下物品的最紧急状态（使用用户设置）
-  ExpirationStatus? getLocationStatus(String locationName) {
+  ExpirationStatus? getLocationStatus(String locationId, {String? fallbackName}) {
     final warningDays = settingsService.warningDays;
     final urgentDays = settingsService.urgentDays;
 
-    final locationItems = _items.where((item) => item.storageLocation == locationName);
+    final locationItems = _items.where((item) {
+      if (item.storageLocationId == locationId) return true;
+      return item.storageLocationId.isEmpty &&
+          fallbackName != null &&
+          item.storageLocation == fallbackName;
+    });
     if (locationItems.isEmpty) return null;
 
     // 优先级：expired > urgent > warning > fresh

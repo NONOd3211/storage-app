@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/item.dart';
+import '../models/expiration_status_ui.dart';
 import '../view_models/item_view_model.dart';
 import '../widgets/item_card.dart';
 import 'add_item_screen.dart';
@@ -68,15 +69,16 @@ class _ItemListScreenState extends State<ItemListScreen> {
                 // 添加按钮
                 IconButton(
                   icon: const Icon(Icons.add),
-                  onPressed: () {
-                    Navigator.push(
+                  onPressed: () async {
+                    await Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => const AddItemScreen(),
                       ),
-                    ).then((_) {
+                    );
+                    if (context.mounted) {
                       context.read<ItemViewModel>().loadItems();
-                    });
+                    }
                   },
                 ),
               ],
@@ -220,8 +222,8 @@ class _ItemListScreenState extends State<ItemListScreen> {
           secondary: Container(
             width: 12,
             height: 12,
-            decoration: BoxDecoration(
-              color: _getStatusColor(status),
+              decoration: BoxDecoration(
+              color: status.color,
               shape: BoxShape.circle,
             ),
           ),
@@ -246,25 +248,8 @@ class _ItemListScreenState extends State<ItemListScreen> {
               color: Colors.white,
             ),
           ),
-          confirmDismiss: (direction) async {
-            return await showDialog<bool>(
-              context: context,
-              builder: (dialogContext) => AlertDialog(
-                title: const Text('删除物品'),
-                content: Text('确定要删除 "${item.name}" 吗？'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(dialogContext, false),
-                    child: const Text('取消'),
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(dialogContext, true),
-                    style: TextButton.styleFrom(foregroundColor: Colors.red),
-                    child: const Text('删除'),
-                  ),
-                ],
-              ),
-            );
+              confirmDismiss: (direction) async {
+            return await _confirmDelete(context, item);
           },
           onDismissed: (direction) {
             viewModel.deleteItem(item);
@@ -284,6 +269,8 @@ class _ItemListScreenState extends State<ItemListScreen> {
               key: ValueKey(item.id),
               item: item,
               status: status,
+              onDelete: () => _deleteItemWithConfirm(context, viewModel, item),
+              onEdit: () => _editItem(context, item),
               onTap: () {
                 Navigator.push(
                   context,
@@ -299,17 +286,54 @@ class _ItemListScreenState extends State<ItemListScreen> {
     }
   }
 
-  Color _getStatusColor(ExpirationStatus status) {
-    switch (status) {
-      case ExpirationStatus.fresh:
-        return Colors.green;
-      case ExpirationStatus.warning:
-        return Colors.yellow.shade700;
-      case ExpirationStatus.urgent:
-        return Colors.orange;
-      case ExpirationStatus.expired:
-        return Colors.red;
+  Future<void> _editItem(BuildContext context, Item item) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddItemScreen(editingItem: item),
+      ),
+    );
+    if (context.mounted) {
+      context.read<ItemViewModel>().loadItems();
     }
+  }
+
+  Future<bool?> _confirmDelete(BuildContext context, Item item) {
+    return showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('删除物品'),
+        content: Text('确定要删除 "${item.name}" 吗？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteItemWithConfirm(
+    BuildContext context,
+    ItemViewModel viewModel,
+    Item item,
+  ) async {
+    final confirmed = await _confirmDelete(context, item) ?? false;
+    if (!confirmed) return;
+    await viewModel.deleteItem(item);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${item.name} 已删除'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
   }
 
   void _showDeleteConfirmation(BuildContext context, ItemViewModel viewModel) {
