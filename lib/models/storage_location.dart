@@ -24,8 +24,6 @@ class StorageLocation {
     ),
     StorageLocation(id: 'preset_1', name: '冰箱', icon: 'kitchen', isPreset: true),
     StorageLocation(id: 'preset_2', name: '橱柜', icon: 'door_sliding', isPreset: true),
-    StorageLocation(id: 'preset_3', name: '抽屉', icon: 'draw', isPreset: true),
-    StorageLocation(id: 'preset_4', name: '柜子', icon: 'inventory_2', isPreset: true),
     StorageLocation(id: 'preset_5', name: '架子', icon: 'shelves', isPreset: true),
   ];
 

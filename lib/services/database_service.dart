@@ -22,7 +22,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 4,
+      version: 5,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -51,6 +51,11 @@ class DatabaseService {
 
       await _ensureUncategorizedLocation(db);
       await _migrateItemLocationIds(db);
+    }
+
+    if (oldVersion < 5) {
+      await _ensureUncategorizedLocation(db);
+      await _migrateRemovedPresetLocationsToUncategorized(db);
     }
   }
 
@@ -121,6 +126,25 @@ class DatabaseService {
       'items',
       {'storageLocationId': StorageLocation.uncategorizedId},
       where: "storageLocationId IS NULL OR storageLocationId = ''",
+    );
+  }
+
+  Future<void> _migrateRemovedPresetLocationsToUncategorized(Database db) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await db.rawUpdate(
+      '''
+      UPDATE items
+      SET storageLocationId = ?, storageLocation = ?, updatedAt = ?
+      WHERE storageLocationId IN ('preset_3', 'preset_4')
+         OR storageLocation IN ('抽屉', '柜子')
+      ''',
+      [StorageLocation.uncategorizedId, '未分类', now],
+    );
+
+    await db.delete(
+      'locations',
+      where: 'id IN (?, ?)',
+      whereArgs: ['preset_3', 'preset_4'],
     );
   }
 
