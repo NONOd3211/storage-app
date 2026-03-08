@@ -36,6 +36,20 @@ enum ExpirationStatus {
   }
 }
 
+extension ExpirationStatusFromDays on ExpirationStatus {
+  static ExpirationStatus fromDays(
+    int? days, {
+    required int warningDays,
+    required int urgentDays,
+  }) {
+    if (days == null) return ExpirationStatus.fresh;
+    if (days < 0) return ExpirationStatus.expired;
+    if (days < urgentDays) return ExpirationStatus.urgent;
+    if (days < warningDays) return ExpirationStatus.warning;
+    return ExpirationStatus.fresh;
+  }
+}
+
 class Item {
   final String id;
   String name;
@@ -83,12 +97,11 @@ class Item {
   // 使用默认阈值，判断保质期状态
   // warningDays: 30天, urgentDays: 7天
   ExpirationStatus getExpirationStatus({int warningDays = 30, int urgentDays = 7}) {
-    final days = daysUntilExpiration;
-    if (days == null) return ExpirationStatus.fresh;
-    if (days < 0) return ExpirationStatus.expired;
-    if (days < urgentDays) return ExpirationStatus.urgent;
-    if (days < warningDays) return ExpirationStatus.warning;
-    return ExpirationStatus.fresh;
+    return ExpirationStatusFromDays.fromDays(
+      daysUntilExpiration,
+      warningDays: warningDays,
+      urgentDays: urgentDays,
+    );
   }
 
   // 兼容旧代码的 getter，使用默认阈值

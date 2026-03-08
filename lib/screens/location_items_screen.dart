@@ -77,8 +77,9 @@ class _LocationItemsScreenState extends State<LocationItemsScreen> {
             cacheExtent: 200,
             itemCount: items.length,
             itemBuilder: (context, index) {
-              final item = items[index];
-              return RepaintBoundary(
+                final item = items[index];
+                final status = viewModel.getItemStatus(item);
+                return RepaintBoundary(
                 child: Dismissible(
                   key: ValueKey(item.id),
                   direction: DismissDirection.endToStart,
@@ -127,6 +128,7 @@ class _LocationItemsScreenState extends State<LocationItemsScreen> {
                   child: ItemCard(
                     key: ValueKey(item.id),
                     item: item,
+                    status: status,
                     onTap: () {
                       Navigator.push(
                         context,

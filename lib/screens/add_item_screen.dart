@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../models/item.dart';
+import '../models/expiration_status_ui.dart';
+import '../services/settings_service.dart';
 import '../view_models/item_view_model.dart';
 import '../view_models/location_view_model.dart';
 
@@ -92,15 +94,13 @@ class _AddItemScreenState extends State<AddItemScreen> {
   }
 
   Color get daysColor {
-    final days = calculatedDays;
-    if (days == null) return Colors.green;
-    if (days < 0) return Colors.red;
-    // 使用默认阈值
-    const warningDays = 30;
-    const urgentDays = 7;
-    if (days < urgentDays) return Colors.orange;
-    if (days < warningDays) return Colors.yellow.shade700;
-    return Colors.green;
+    final settingsService = context.read<SettingsService>();
+    final status = ExpirationStatusFromDays.fromDays(
+      calculatedDays,
+      warningDays: settingsService.warningDays,
+      urgentDays: settingsService.urgentDays,
+    );
+    return status.color;
   }
 
   @override
@@ -164,7 +164,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<ItemCategory>(
-                      value: _category,
+                      key: ValueKey(_category),
+                      initialValue: _category,
                       decoration: const InputDecoration(
                         labelText: '分类',
                         border: OutlineInputBorder(),
@@ -185,7 +186,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
                     Consumer<LocationViewModel>(
                       builder: (context, locationVM, _) {
                         return DropdownButtonFormField<String>(
-                          value: _storageLocationId.isEmpty
+                          key: ValueKey(_storageLocationId),
+                          initialValue: _storageLocationId.isEmpty
                               ? null
                               : _storageLocationId,
                           decoration: const InputDecoration(
@@ -353,7 +355,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
             // 计算结果
             if (calculatedExpirationDate != null)
               Card(
-                color: daysColor.withOpacity(0.1),
+                color: daysColor.withValues(alpha: 0.1),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(

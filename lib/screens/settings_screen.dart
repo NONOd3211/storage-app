@@ -42,6 +42,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final settingsService = context.read<SettingsService>();
+    final itemViewModel = context.read<ItemViewModel>();
+    final notificationService = NotificationService();
 
     return Scaffold(
       appBar: AppBar(
@@ -70,9 +72,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               setState(() => _notificationEnabled = value);
               await settingsService.setNotificationEnabled(value);
               if (value) {
-                await context.read<ItemViewModel>().rescheduleAllNotifications();
+                await itemViewModel.rescheduleAllNotifications();
               } else {
-                await NotificationService().cancelAllNotifications();
+                await notificationService.cancelAllNotifications();
               }
             },
           ),
@@ -97,9 +99,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('即将过期提醒'),
             subtitle: Text('$_warningDays 天'),
             onTap: () => _showDaysDialog('即将过期提醒 (天)', _warningDays, (value) async {
-              setState(() => _warningDays = value);
-              await settingsService.setWarningDays(value);
-              await context.read<ItemViewModel>().rescheduleAllNotifications();
+              await _saveThreshold(
+                days: value,
+                onLocalSet: () => setState(() => _warningDays = value),
+                onPersist: () => settingsService.setWarningDays(value),
+                itemViewModel: itemViewModel,
+              );
             }),
           ),
           ListTile(
@@ -107,9 +112,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('紧急提醒'),
             subtitle: Text('$_urgentDays 天'),
             onTap: () => _showDaysDialog('紧急提醒 (天)', _urgentDays, (value) async {
-              setState(() => _urgentDays = value);
-              await settingsService.setUrgentDays(value);
-              await context.read<ItemViewModel>().rescheduleAllNotifications();
+              await _saveThreshold(
+                days: value,
+                onLocalSet: () => setState(() => _urgentDays = value),
+                onPersist: () => settingsService.setUrgentDays(value),
+                itemViewModel: itemViewModel,
+              );
             }),
           ),
           Padding(
@@ -172,22 +180,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: ThemeMode.values.map((mode) {
-            return RadioListTile<ThemeMode>(
+            final selected = _themeMode == mode;
+            return ListTile(
               title: Text(_getThemeModeText(mode)),
-              value: mode,
-              groupValue: _themeMode,
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _themeMode = value);
-                  settingsService.setThemeMode(value);
-                  Navigator.pop(dialogContext);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('皮肤已更改，重启后生效'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                }
+              trailing: selected ? const Icon(Icons.check) : null,
+              onTap: () {
+                setState(() => _themeMode = mode);
+                settingsService.setThemeMode(mode);
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('皮肤已更改，重启后生效'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
               },
             );
           }).toList(),
@@ -223,6 +229,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () async {
               final value = int.tryParse(controller.text);
               if (value != null && value > 0) {
+                final error = _validateThresholdInput(title: title, value: value);
+                if (error != null) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    SnackBar(content: Text(error)),
+                  );
+                  return;
+                }
                 await onSave(value);
                 if (!dialogContext.mounted) return;
                 Navigator.pop(dialogContext);
@@ -268,5 +281,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const Text('作者：Ice Wraith'),
       ],
     );
+  }
+
+  Future<void> _saveThreshold({
+    required int days,
+    required VoidCallback onLocalSet,
+    required Future<void> Function() onPersist,
+    required ItemViewModel itemViewModel,
+  }) async {
+    onLocalSet();
+    await onPersist();
+    itemViewModel.refreshComputedState();
+    await itemViewModel.rescheduleAllNotifications();
+  }
+
+  String? _validateThresholdInput({
+    required String title,
+    required int value,
+  }) {
+    if (title.contains('即将过期')) {
+      if (value <= _urgentDays) {
+        return '即将过期天数必须大于紧急天数（$_urgentDays）';
+      }
+    } else if (title.contains('紧急')) {
+      if (value >= _warningDays) {
+        return '紧急天数必须小于即将过期天数（$_warningDays）';
+      }
+    }
+    return null;
   }
 }

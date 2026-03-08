@@ -169,6 +169,10 @@ class ItemViewModel extends ChangeNotifier {
     return await _database.searchItems(query);
   }
 
+  void refreshComputedState() {
+    notifyListeners();
+  }
+
   Future<void> rescheduleAllNotifications() async {
     try {
       await _notificationService.cancelAllNotifications();
