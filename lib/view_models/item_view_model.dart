@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import '../models/item.dart';
+import '../models/storage_location.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
 import '../main.dart';
@@ -7,6 +10,10 @@ import '../main.dart';
 class ItemViewModel extends ChangeNotifier {
   final DatabaseService _database = DatabaseService();
   final NotificationService _notificationService = NotificationService();
+  Timer? _rescheduleDebounce;
+  int _rescheduleVersion = 0;
+  static const Duration _rescheduleDebounceDuration = Duration(milliseconds: 200);
+  static const int _rescheduleBatchSize = 8;
 
   List<Item> _items = [];
   List<Item> get items => _items;
@@ -148,6 +155,14 @@ class ItemViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  // 批量设置选中项（用于特定列表场景，如位置内列表）
+  void setSelectionByIds(Iterable<String> ids) {
+    _selectedIds
+      ..clear()
+      ..addAll(ids);
+    notifyListeners();
+  }
+
   // 取消全选
   void clearSelection() {
     _selectedIds.clear();
@@ -169,30 +184,73 @@ class ItemViewModel extends ChangeNotifier {
     return await _database.searchItems(query);
   }
 
+  Future<int> transferSelectedItemsToLocation(StorageLocation targetLocation) async {
+    final idsToTransfer = _selectedIds.toList();
+    if (idsToTransfer.isEmpty) return 0;
+
+    final updatedCount = await _database.transferItemsByIds(
+      itemIds: idsToTransfer,
+      toLocationId: targetLocation.id,
+      toLocationName: targetLocation.name,
+    );
+
+    _selectedIds.clear();
+    await loadItems();
+    return updatedCount;
+  }
+
   void refreshComputedState() {
     notifyListeners();
   }
 
   Future<void> rescheduleAllNotifications() async {
+    final version = ++_rescheduleVersion;
+    _rescheduleDebounce?.cancel();
+    _rescheduleDebounce = Timer(_rescheduleDebounceDuration, () {
+      unawaited(_runReschedule(version));
+    });
+  }
+
+  Future<void> _runReschedule(int version) async {
+    if (version != _rescheduleVersion) return;
+
     try {
       await _notificationService.cancelAllNotifications();
     } catch (e) {
       debugPrint('取消全部通知失败: $e');
     }
+
+    if (version != _rescheduleVersion) return;
     if (!settingsService.notificationEnabled) return;
 
-    if (_items.isEmpty) {
-      _items = await _database.getAllItems();
+    var itemsForReschedule = _items;
+    if (itemsForReschedule.isEmpty) {
+      itemsForReschedule = await _database.getAllItems();
+      if (version != _rescheduleVersion) return;
+      _items = itemsForReschedule;
       notifyListeners();
     }
 
-    for (final item in _items) {
-      try {
-        await _notificationService.scheduleNotification(item);
-      } catch (e) {
-        debugPrint('重排通知失败（${item.id}）: $e');
-      }
+    for (int i = 0; i < itemsForReschedule.length; i += _rescheduleBatchSize) {
+      if (version != _rescheduleVersion) return;
+      final batch = itemsForReschedule.skip(i).take(_rescheduleBatchSize).toList();
+      await Future.wait(
+        batch.map((item) async {
+          if (version != _rescheduleVersion) return;
+          try {
+            await _notificationService.scheduleNotification(item);
+          } catch (e) {
+            debugPrint('重排通知失败（${item.id}）: $e');
+          }
+        }),
+      );
     }
+  }
+
+  @override
+  void dispose() {
+    _rescheduleDebounce?.cancel();
+    super.dispose();
   }
 
   List<Item> get urgentItems {

@@ -165,6 +165,40 @@ class DatabaseService {
     return maps.map((map) => Item.fromMap(map)).toList();
   }
 
+  Future<int> transferItemsByIds({
+    required List<String> itemIds,
+    required String toLocationId,
+    required String toLocationName,
+  }) async {
+    if (itemIds.isEmpty) return 0;
+    final db = await database;
+    int totalUpdated = 0;
+
+    await db.transaction((txn) async {
+      const maxChunkSize = 500;
+      for (int i = 0; i < itemIds.length; i += maxChunkSize) {
+        final chunk = itemIds.skip(i).take(maxChunkSize).toList();
+        final placeholders = List.filled(chunk.length, '?').join(',');
+        final updated = await txn.rawUpdate(
+          '''
+          UPDATE items
+          SET storageLocationId = ?, storageLocation = ?, updatedAt = ?
+          WHERE id IN ($placeholders)
+          ''',
+          [
+            toLocationId,
+            toLocationName,
+            DateTime.now().millisecondsSinceEpoch,
+            ...chunk,
+          ],
+        );
+        totalUpdated += updated;
+      }
+    });
+
+    return totalUpdated;
+  }
+
   // Location CRUD
   Future<void> insertLocation(StorageLocation location) async {
     final db = await database;
