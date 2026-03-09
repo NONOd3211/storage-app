@@ -5,6 +5,7 @@ import '../models/storage_location.dart';
 import '../models/expiration_status_ui.dart';
 import '../view_models/item_view_model.dart';
 import '../view_models/location_view_model.dart';
+import '../widgets/limited_text_context_menu.dart';
 import 'location_items_screen.dart';
 
 class LocationListScreen extends StatefulWidget {
@@ -163,6 +164,7 @@ class _LocationListScreenState extends State<LocationListScreen> {
         title: const Text('添加位置'),
         content: TextField(
           controller: controller,
+          contextMenuBuilder: buildLimitedTextContextMenu,
           decoration: const InputDecoration(
             labelText: '位置名称',
             border: OutlineInputBorder(),

@@ -4,6 +4,7 @@ import '../models/item.dart';
 import '../view_models/location_view_model.dart';
 import '../view_models/item_view_model.dart';
 import '../widgets/item_list_interactions.dart';
+import '../widgets/limited_text_context_menu.dart';
 import 'add_item_screen.dart';
 
 class ItemListScreen extends StatefulWidget {
@@ -117,6 +118,7 @@ class _ItemListScreenState extends State<ItemListScreen> {
                     padding: const EdgeInsets.all(16),
                     child: TextField(
                       controller: _searchController,
+                      contextMenuBuilder: buildLimitedTextContextMenu,
                       decoration: InputDecoration(
                         hintText: '搜索物品',
                         prefixIcon: const Icon(Icons.search),

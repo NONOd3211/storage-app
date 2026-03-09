@@ -6,6 +6,7 @@ import '../models/expiration_status_ui.dart';
 import '../services/settings_service.dart';
 import '../view_models/item_view_model.dart';
 import '../view_models/location_view_model.dart';
+import '../widgets/limited_text_context_menu.dart';
 
 class AddItemScreen extends StatefulWidget {
   final Item? editingItem;
@@ -132,6 +133,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _nameController,
+                      contextMenuBuilder: buildLimitedTextContextMenu,
                       decoration: const InputDecoration(
                         labelText: '物品名称',
                         border: OutlineInputBorder(),
@@ -146,6 +148,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _quantityController,
+                      contextMenuBuilder: buildLimitedTextContextMenu,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         labelText: '份数',
@@ -274,6 +277,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                               width: 100,
                               child: TextFormField(
                                 controller: _expirationDaysController,
+                                contextMenuBuilder: buildLimitedTextContextMenu,
                                 keyboardType: TextInputType.number,
                                 decoration: const InputDecoration(
                                   hintText: '天数',
@@ -340,6 +344,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                     const SizedBox(height: 16),
                     TextField(
                       controller: _notesController,
+                      contextMenuBuilder: buildLimitedTextContextMenu,
                       maxLines: 3,
                       decoration: const InputDecoration(
                         hintText: '添加备注（可选）',

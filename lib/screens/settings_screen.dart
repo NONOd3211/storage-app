@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/settings_service.dart';
 import '../services/notification_service.dart';
 import '../view_models/item_view_model.dart';
+import '../widgets/limited_text_context_menu.dart';
 import 'reminder_settings_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -214,6 +215,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: Text(title),
         content: TextField(
           controller: controller,
+          contextMenuBuilder: buildLimitedTextContextMenu,
           keyboardType: TextInputType.number,
           decoration: const InputDecoration(
             labelText: '天数',
