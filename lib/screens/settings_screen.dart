@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +8,7 @@ import '../services/notification_service.dart';
 import '../services/settings_service.dart';
 import '../view_models/item_view_model.dart';
 import '../view_models/settings_view_model.dart';
+import '../widgets/app_snackbar.dart';
 import '../widgets/limited_text_context_menu.dart';
 import 'reminder_settings_screen.dart';
 
@@ -232,9 +235,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (!dialogContext.mounted) return;
                 Navigator.pop(dialogContext);
                 if (!mounted) return;
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(l10n.themeUpdated)));
+                _showThemeUpdatedSnackBar();
               },
             );
           }).toList(),
@@ -264,9 +265,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (!dialogContext.mounted) return;
                 Navigator.pop(dialogContext);
                 if (!mounted) return;
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(l10n.languageUpdated)));
+                _showLanguageUpdatedSnackBar();
               },
             ),
             _buildLanguageOption(
@@ -287,9 +286,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (!dialogContext.mounted) return;
                 Navigator.pop(dialogContext);
                 if (!mounted) return;
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(l10n.languageUpdated)));
+                _showLanguageUpdatedSnackBar(locale: locale);
               },
             ),
             _buildLanguageOption(
@@ -309,9 +306,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (!dialogContext.mounted) return;
                 Navigator.pop(dialogContext);
                 if (!mounted) return;
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(l10n.languageUpdated)));
+                _showLanguageUpdatedSnackBar(locale: locale);
               },
             ),
             _buildLanguageOption(
@@ -330,9 +325,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 if (!dialogContext.mounted) return;
                 Navigator.pop(dialogContext);
                 if (!mounted) return;
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(SnackBar(content: Text(l10n.languageUpdated)));
+                _showLanguageUpdatedSnackBar(locale: locale);
               },
             ),
           ],
@@ -386,9 +379,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               if (value != null && value > 0) {
                 final error = _validateThresholdInput(type: type, value: value);
                 if (error != null) {
-                  ScaffoldMessenger.of(
-                    dialogContext,
-                  ).showSnackBar(SnackBar(content: Text(error)));
+                  AppSnackBar.show(dialogContext, error);
                   return;
                 }
                 await onSave(value);
@@ -470,5 +461,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final settingsService = context.read<SettingsService>();
     if (!settingsService.notificationEnabled) return;
     await context.read<ItemViewModel>().rescheduleAllNotifications();
+  }
+
+  void _showThemeUpdatedSnackBar() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      AppSnackBar.show(context, AppLocalizations.of(context)!.themeUpdated);
+    });
+  }
+
+  void _showLanguageUpdatedSnackBar({Locale? locale}) {
+    final effectiveLocale =
+        locale ?? _normalizeLocale(ui.PlatformDispatcher.instance.locale);
+    final localized = lookupAppLocalizations(effectiveLocale);
+    AppSnackBar.show(context, localized.languageUpdated);
+  }
+
+  Locale _normalizeLocale(Locale locale) {
+    if (locale.languageCode == 'zh' && locale.countryCode == 'TW') {
+      return const Locale('zh', 'TW');
+    }
+    if (locale.languageCode == 'en') {
+      return const Locale('en');
+    }
+    return const Locale('zh');
   }
 }

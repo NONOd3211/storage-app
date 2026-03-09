@@ -10,6 +10,7 @@ import '../models/expiration_status_ui.dart';
 import '../screens/add_item_screen.dart';
 import '../screens/item_detail_screen.dart';
 import '../view_models/item_view_model.dart';
+import 'app_snackbar.dart';
 import 'item_card.dart';
 
 class ItemListActions {
@@ -82,12 +83,7 @@ class ItemListActions {
 
   static void showDeletedSnackBar(BuildContext context, String itemName) {
     final l10n = AppLocalizations.of(context)!;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(l10n.deletedItem(itemName)),
-        duration: const Duration(seconds: 1),
-      ),
-    );
+    AppSnackBar.show(context, l10n.deletedItem(itemName));
   }
 
   static void showBatchDeleteConfirmation(
@@ -111,12 +107,7 @@ class ItemListActions {
               Navigator.pop(dialogContext);
               final deletedCount = await viewModel.deleteSelectedItems();
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(l10n.batchDeleted(deletedCount)),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
+                AppSnackBar.show(context, l10n.batchDeleted(deletedCount));
               }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -139,9 +130,7 @@ class ItemListActions {
         .toList();
 
     if (targetLocations.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.noTransferTargetLocation)));
+      AppSnackBar.show(context, l10n.noTransferTargetLocation);
       return;
     }
 
@@ -204,14 +193,11 @@ class ItemListActions {
     if (!context.mounted || transferredCount == null || transferredCount == 0) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          l10n.transferredItemsToLocation(
-            transferredCount,
-            selectedLocation.localizedName(l10n),
-          ),
-        ),
+    AppSnackBar.show(
+      context,
+      l10n.transferredItemsToLocation(
+        transferredCount,
+        selectedLocation.localizedName(l10n),
       ),
     );
   }

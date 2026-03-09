@@ -8,6 +8,7 @@ import '../models/expiration_status_ui.dart';
 import '../services/settings_service.dart';
 import '../view_models/item_view_model.dart';
 import '../view_models/location_view_model.dart';
+import '../widgets/app_snackbar.dart';
 import '../widgets/limited_text_context_menu.dart';
 
 class AddItemScreen extends StatefulWidget {
@@ -444,9 +445,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
         .firstOrNull;
     if (location == null) {
       final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.invalidStorageLocation)));
+      AppSnackBar.show(context, l10n.invalidStorageLocation);
       return;
     }
 
@@ -481,9 +480,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
     } catch (_) {
       if (!mounted) return;
       final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.saveFailedRetry)));
+      AppSnackBar.show(context, l10n.saveFailedRetry);
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);

@@ -7,6 +7,7 @@ import '../models/storage_location.dart';
 import '../models/expiration_status_ui.dart';
 import '../view_models/item_view_model.dart';
 import '../view_models/location_view_model.dart';
+import '../widgets/app_snackbar.dart';
 import '../widgets/limited_text_context_menu.dart';
 import 'location_items_screen.dart';
 
@@ -275,15 +276,11 @@ class _LocationListScreenState extends State<LocationListScreen> {
                 await locationVM.deleteLocation(location);
                 if (!context.mounted) return;
                 Navigator.pop(dialogContext);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      l10n.deletedLocationAndItems(
-                        location.name,
-                        relatedItems.length,
-                      ),
-                    ),
-                    duration: const Duration(seconds: 2),
+                AppSnackBar.show(
+                  context,
+                  l10n.deletedLocationAndItems(
+                    location.name,
+                    relatedItems.length,
                   ),
                 );
               },
@@ -312,12 +309,7 @@ class _LocationListScreenState extends State<LocationListScreen> {
                 );
                 if (!context.mounted) return;
                 Navigator.pop(dialogContext);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(l10n.deletedLocation(location.name)),
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
+                AppSnackBar.show(context, l10n.deletedLocation(location.name));
               },
               style: TextButton.styleFrom(foregroundColor: Colors.red),
               child: Text(l10n.actionDelete),
