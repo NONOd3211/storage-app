@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
 import '../services/settings_service.dart';
 import '../view_models/item_view_model.dart';
 
@@ -29,15 +30,16 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final settingsService = context.read<SettingsService>();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('提醒项设置')),
+      appBar: AppBar(title: Text(l10n.reminderSettings)),
       body: ListView(
         children: [
           SwitchListTile(
-            title: const Text('即将过期提醒'),
-            subtitle: const Text('按“即将过期天数”触发'),
+            title: Text(l10n.warningReminder),
+            subtitle: Text(l10n.warningReminderSubtitle),
             value: _warningEnabled,
             onChanged: _updating
                 ? null
@@ -48,8 +50,8 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
                   },
           ),
           SwitchListTile(
-            title: const Text('紧急提醒'),
-            subtitle: const Text('按“紧急天数”触发'),
+            title: Text(l10n.urgentReminder),
+            subtitle: Text(l10n.urgentReminderSubtitle),
             value: _urgentEnabled,
             onChanged: _updating
                 ? null
@@ -60,7 +62,7 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
                   },
           ),
           SwitchListTile(
-            title: const Text('到期前 1 天提醒'),
+            title: Text(l10n.oneDayReminder),
             value: _oneDayEnabled,
             onChanged: _updating
                 ? null
@@ -71,7 +73,7 @@ class _ReminderSettingsScreenState extends State<ReminderSettingsScreen> {
                   },
           ),
           SwitchListTile(
-            title: const Text('到期当天提醒'),
+            title: Text(l10n.dueDayReminder),
             value: _dueDayEnabled,
             onChanged: _updating
                 ? null

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/app_text_extensions.dart';
 import '../models/item.dart';
+import '../models/storage_location.dart';
 import '../models/expiration_status_ui.dart';
 import '../view_models/item_view_model.dart';
 import 'add_item_screen.dart';
@@ -13,11 +16,12 @@ class ItemDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final dateFormat = DateFormat('yyyy-MM-dd');
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('物品详情'),
+        title: Text(l10n.itemDetailTitle),
         centerTitle: true,
         actions: [
           IconButton(
@@ -25,7 +29,8 @@ class ItemDetailScreen extends StatelessWidget {
             onPressed: () async {
               final viewModel = context.read<ItemViewModel>();
               final latestItem =
-                  viewModel.items.where((i) => i.id == item.id).firstOrNull ?? item;
+                  viewModel.items.where((i) => i.id == item.id).firstOrNull ??
+                  item;
               await Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -46,7 +51,8 @@ class ItemDetailScreen extends StatelessWidget {
       body: Consumer<ItemViewModel>(
         builder: (context, viewModel, child) {
           // 从列表中获取最新的物品数据
-          final latestItem = viewModel.items.where((i) => i.id == item.id).firstOrNull ?? item;
+          final latestItem =
+              viewModel.items.where((i) => i.id == item.id).firstOrNull ?? item;
           // 使用 ViewModel 获取基于用户设置的状态
           final status = viewModel.getItemStatus(latestItem);
 
@@ -63,8 +69,8 @@ class ItemDetailScreen extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            '保质期状态',
+                          Text(
+                            l10n.expirationStatus,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -92,7 +98,7 @@ class ItemDetailScreen extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  status.label,
+                                  status.localizedLabel(l10n),
                                   style: TextStyle(
                                     color: status.color,
                                     fontWeight: FontWeight.bold,
@@ -106,15 +112,21 @@ class ItemDetailScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       if (latestItem.calculatedExpirationDate != null)
                         _buildInfoRow(
-                          '到期日期',
-                          dateFormat.format(latestItem.calculatedExpirationDate!),
+                          l10n.expirationDateLabel,
+                          dateFormat.format(
+                            latestItem.calculatedExpirationDate!,
+                          ),
                         ),
                       if (latestItem.daysUntilExpiration != null)
                         _buildInfoRow(
-                          '剩余天数',
+                          l10n.remainingDaysLabel,
                           latestItem.daysUntilExpiration! < 0
-                              ? '${-latestItem.daysUntilExpiration!} 天（已过期）'
-                              : '${latestItem.daysUntilExpiration} 天',
+                              ? l10n.expiredDaysCompact(
+                                  -latestItem.daysUntilExpiration!,
+                                )
+                              : l10n.remainingDays(
+                                  latestItem.daysUntilExpiration!,
+                                ),
                           valueColor: status.color,
                         ),
                     ],
@@ -130,32 +142,48 @@ class ItemDetailScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        '物品信息',
+                      Text(
+                        l10n.itemInfo,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _buildInfoRow('名称', latestItem.name),
-                      _buildInfoRow('分类', latestItem.category.label),
-                      _buildInfoRow('存放位置', latestItem.storageLocation),
-                      _buildInfoRow('份数', latestItem.quantity.toString()),
+                      _buildInfoRow(l10n.nameLabel, latestItem.name),
+                      _buildInfoRow(
+                        l10n.categoryLabel,
+                        latestItem.category.localizedLabel(l10n),
+                      ),
+                      _buildInfoRow(
+                        l10n.storageLocationLabel,
+                        StorageLocation(
+                          id: latestItem.storageLocationId,
+                          name: latestItem.storageLocation,
+                        ).localizedName(l10n),
+                      ),
+                      _buildInfoRow(
+                        l10n.quantityLabel,
+                        latestItem.quantity.toString(),
+                      ),
                       if (latestItem.expirationDate != null)
                         _buildInfoRow(
-                          '到期日期',
+                          l10n.expirationDateLabel,
                           dateFormat.format(latestItem.expirationDate!),
                         ),
                       if (latestItem.productionDate != null)
                         _buildInfoRow(
-                          '生产日期',
+                          l10n.productionDateLabel,
                           dateFormat.format(latestItem.productionDate!),
                         ),
                       if (latestItem.expirationDays != null)
-                        _buildInfoRow('保质期', '${latestItem.expirationDays.toString()} 天'),
-                      if (latestItem.notes != null && latestItem.notes!.isNotEmpty)
-                        _buildInfoRow('备注', latestItem.notes!),
+                        _buildInfoRow(
+                          l10n.shelfLifeLabel,
+                          '${latestItem.expirationDays} ${l10n.daysSuffix}',
+                        ),
+                      if (latestItem.notes != null &&
+                          latestItem.notes!.isNotEmpty)
+                        _buildInfoRow(l10n.remarksLabel, latestItem.notes!),
                     ],
                   ),
                 ),
@@ -175,20 +203,12 @@ class ItemDetailScreen extends StatelessWidget {
         children: [
           SizedBox(
             width: 80,
-            child: Text(
-              label,
-              style: TextStyle(
-                color: Colors.grey.shade600,
-              ),
-            ),
+            child: Text(label, style: TextStyle(color: Colors.grey.shade600)),
           ),
           Expanded(
             child: Text(
               value,
-              style: TextStyle(
-                fontWeight: FontWeight.w500,
-                color: valueColor,
-              ),
+              style: TextStyle(fontWeight: FontWeight.w500, color: valueColor),
             ),
           ),
         ],
@@ -197,15 +217,16 @@ class ItemDetailScreen extends StatelessWidget {
   }
 
   void _showDeleteDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('删除物品'),
-        content: Text('确定要删除 ${item.name} 吗？此操作无法撤销。'),
+        title: Text(l10n.actionDelete),
+        content: Text(l10n.confirmDeleteItemWithIrreversible(item.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -216,7 +237,7 @@ class ItemDetailScreen extends StatelessWidget {
               Navigator.pop(context);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('删除'),
+            child: Text(l10n.actionDelete),
           ),
         ],
       ),

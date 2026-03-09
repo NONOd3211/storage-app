@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
-import '../services/settings_service.dart';
+import '../l10n/app_localizations.dart';
 import '../services/notification_service.dart';
+import '../services/settings_service.dart';
 import '../view_models/item_view_model.dart';
+import '../view_models/settings_view_model.dart';
 import '../widgets/limited_text_context_menu.dart';
 import 'reminder_settings_screen.dart';
 
@@ -14,22 +16,29 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
+enum _ThresholdType { warning, urgent }
+
 class _SettingsScreenState extends State<SettingsScreen> {
   late ThemeMode _themeMode;
   late int _warningDays;
   late int _urgentDays;
   late bool _notificationEnabled;
+  late AppLanguageMode _languageMode;
+  late Locale _manualLocale;
   String _appVersion = '';
 
   @override
   void initState() {
     super.initState();
-    // 通过 Provider 获取 SettingsService
     final settingsService = context.read<SettingsService>();
+    final settingsViewModel = context.read<SettingsViewModel>();
+
     _themeMode = settingsService.themeMode;
     _warningDays = settingsService.warningDays;
     _urgentDays = settingsService.urgentDays;
     _notificationEnabled = settingsService.notificationEnabled;
+    _languageMode = settingsViewModel.languageMode;
+    _manualLocale = settingsViewModel.manualLocale;
     _loadAppVersion();
   }
 
@@ -42,32 +51,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final settingsService = context.read<SettingsService>();
     final itemViewModel = context.read<ItemViewModel>();
     final notificationService = NotificationService();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('设置'),
-      ),
+      appBar: AppBar(title: Text(l10n.settingsTitle)),
       body: ListView(
         children: [
-          // 主题设置（皮肤）
-          _buildSectionHeader('外观'),
+          _buildSectionHeader(l10n.sectionAppearance),
           ListTile(
             leading: const Icon(Icons.palette),
-            title: const Text('皮肤'),
-            subtitle: Text(_getThemeModeText(_themeMode)),
+            title: Text(l10n.theme),
+            subtitle: Text(_getThemeModeText(l10n, _themeMode)),
             onTap: _showThemeDialog,
           ),
+          ListTile(
+            leading: const Icon(Icons.language),
+            title: Text(l10n.language),
+            subtitle: Text(_getLanguageText(l10n)),
+            onTap: _showLanguageDialog,
+          ),
           const Divider(),
-
-          // 保质期阈值设置
-          _buildSectionHeader('保质期提醒'),
+          _buildSectionHeader(l10n.sectionExpirationReminder),
           SwitchListTile(
             secondary: const Icon(Icons.notifications),
-            title: const Text('启用通知'),
-            subtitle: Text(_notificationEnabled ? '已开启' : '已关闭'),
+            title: Text(l10n.notificationEnabled),
+            subtitle: Text(
+              _notificationEnabled ? l10n.statusEnabled : l10n.statusDisabled,
+            ),
             value: _notificationEnabled,
             onChanged: (value) async {
               setState(() => _notificationEnabled = value);
@@ -81,8 +94,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.tune),
-            title: const Text('提醒项设置'),
-            subtitle: Text(_notificationEnabled ? '配置四类提醒开关' : '请先开启通知'),
+            title: Text(l10n.reminderSettings),
+            subtitle: Text(
+              _notificationEnabled
+                  ? l10n.configureReminderSwitches
+                  : l10n.enableNotificationsFirst,
+            ),
             enabled: _notificationEnabled,
             onTap: _notificationEnabled
                 ? () {
@@ -97,48 +114,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.warning_amber),
-            title: const Text('即将过期提醒'),
-            subtitle: Text('$_warningDays 天'),
-            onTap: () => _showDaysDialog('即将过期提醒 (天)', _warningDays, (value) async {
-              await _saveThreshold(
-                days: value,
-                onLocalSet: () => setState(() => _warningDays = value),
-                onPersist: () => settingsService.setWarningDays(value),
-                itemViewModel: itemViewModel,
-              );
-            }),
+            title: Text(l10n.warningReminder),
+            subtitle: Text('$_warningDays ${l10n.daysSuffix}'),
+            onTap: () => _showDaysDialog(
+              title: l10n.warningDialogTitle,
+              currentValue: _warningDays,
+              type: _ThresholdType.warning,
+              onSave: (value) async {
+                await _saveThreshold(
+                  days: value,
+                  onLocalSet: () => setState(() => _warningDays = value),
+                  onPersist: () => settingsService.setWarningDays(value),
+                  itemViewModel: itemViewModel,
+                );
+              },
+            ),
           ),
           ListTile(
             leading: const Icon(Icons.error_outline),
-            title: const Text('紧急提醒'),
-            subtitle: Text('$_urgentDays 天'),
-            onTap: () => _showDaysDialog('紧急提醒 (天)', _urgentDays, (value) async {
-              await _saveThreshold(
-                days: value,
-                onLocalSet: () => setState(() => _urgentDays = value),
-                onPersist: () => settingsService.setUrgentDays(value),
-                itemViewModel: itemViewModel,
-              );
-            }),
+            title: Text(l10n.urgentReminder),
+            subtitle: Text('$_urgentDays ${l10n.daysSuffix}'),
+            onTap: () => _showDaysDialog(
+              title: l10n.urgentDialogTitle,
+              currentValue: _urgentDays,
+              type: _ThresholdType.urgent,
+              onSave: (value) async {
+                await _saveThreshold(
+                  days: value,
+                  onLocalSet: () => setState(() => _urgentDays = value),
+                  onPersist: () => settingsService.setUrgentDays(value),
+                  itemViewModel: itemViewModel,
+                );
+              },
+            ),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(
-              '注：保质期小于紧急天数显示为红色，小于即将过期天数显示为橙色',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade600,
-              ),
+              l10n.thresholdNote,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             ),
           ),
           const Divider(),
-
-          // 关于
-          _buildSectionHeader('关于'),
+          _buildSectionHeader(l10n.sectionAbout),
           ListTile(
             leading: const Icon(Icons.info_outline),
-            title: const Text('收纳'),
-            subtitle: Text(_appVersion.isEmpty ? '版本获取中...' : '版本 $_appVersion'),
+            title: Text(l10n.appTitle),
+            subtitle: Text(
+              _appVersion.isEmpty
+                  ? l10n.versionLoading
+                  : l10n.versionPrefix(_appVersion),
+            ),
             onTap: _showAboutDialog,
           ),
         ],
@@ -160,41 +186,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  String _getThemeModeText(ThemeMode mode) {
+  String _getThemeModeText(AppLocalizations l10n, ThemeMode mode) {
     switch (mode) {
       case ThemeMode.system:
-        return '跟随系统';
+        return l10n.themeSystem;
       case ThemeMode.light:
-        return '浅色模式';
+        return l10n.themeLight;
       case ThemeMode.dark:
-        return '深色模式';
+        return l10n.themeDark;
     }
   }
 
+  String _getLanguageText(AppLocalizations l10n) {
+    if (_languageMode == AppLanguageMode.system) {
+      return l10n.languageFollowSystem;
+    }
+    if (_manualLocale.languageCode == 'zh' &&
+        _manualLocale.countryCode == 'TW') {
+      return l10n.languageTraditionalChinese;
+    }
+    if (_manualLocale.languageCode == 'en') {
+      return l10n.languageEnglish;
+    }
+    return l10n.languageSimplifiedChinese;
+  }
+
   void _showThemeDialog() {
-    final settingsService = context.read<SettingsService>();
+    final l10n = AppLocalizations.of(context)!;
+    final settingsViewModel = context.read<SettingsViewModel>();
 
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('选择皮肤'),
+        title: Text(l10n.selectTheme),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: ThemeMode.values.map((mode) {
             final selected = _themeMode == mode;
             return ListTile(
-              title: Text(_getThemeModeText(mode)),
+              title: Text(_getThemeModeText(l10n, mode)),
               trailing: selected ? const Icon(Icons.check) : null,
-              onTap: () {
+              onTap: () async {
                 setState(() => _themeMode = mode);
-                settingsService.setThemeMode(mode);
+                await settingsViewModel.setThemeMode(mode);
+                if (!dialogContext.mounted) return;
                 Navigator.pop(dialogContext);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('皮肤已更改，重启后生效'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
+                if (!mounted) return;
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(l10n.themeUpdated)));
               },
             );
           }).toList(),
@@ -203,12 +243,125 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showDaysDialog(
-    String title,
-    int currentValue,
-    Future<void> Function(int) onSave,
-  ) {
+  void _showLanguageDialog() {
+    final l10n = AppLocalizations.of(context)!;
+    final settingsViewModel = context.read<SettingsViewModel>();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.selectLanguage),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildLanguageOption(
+              title: l10n.languageFollowSystem,
+              selected: _languageMode == AppLanguageMode.system,
+              onTap: () async {
+                setState(() => _languageMode = AppLanguageMode.system);
+                await settingsViewModel.setLanguageFollowSystem();
+                await _rescheduleNotificationsAfterLanguageChanged();
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
+                if (!mounted) return;
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(l10n.languageUpdated)));
+              },
+            ),
+            _buildLanguageOption(
+              title: l10n.languageSimplifiedChinese,
+              selected:
+                  _languageMode == AppLanguageMode.manual &&
+                  _manualLocale.languageCode == 'zh' &&
+                  (_manualLocale.countryCode == 'CN' ||
+                      _manualLocale.countryCode == null),
+              onTap: () async {
+                const locale = Locale('zh', 'CN');
+                setState(() {
+                  _languageMode = AppLanguageMode.manual;
+                  _manualLocale = locale;
+                });
+                await settingsViewModel.setManualLanguage(locale);
+                await _rescheduleNotificationsAfterLanguageChanged();
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
+                if (!mounted) return;
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(l10n.languageUpdated)));
+              },
+            ),
+            _buildLanguageOption(
+              title: l10n.languageTraditionalChinese,
+              selected:
+                  _languageMode == AppLanguageMode.manual &&
+                  _manualLocale.languageCode == 'zh' &&
+                  _manualLocale.countryCode == 'TW',
+              onTap: () async {
+                const locale = Locale('zh', 'TW');
+                setState(() {
+                  _languageMode = AppLanguageMode.manual;
+                  _manualLocale = locale;
+                });
+                await settingsViewModel.setManualLanguage(locale);
+                await _rescheduleNotificationsAfterLanguageChanged();
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
+                if (!mounted) return;
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(l10n.languageUpdated)));
+              },
+            ),
+            _buildLanguageOption(
+              title: l10n.languageEnglish,
+              selected:
+                  _languageMode == AppLanguageMode.manual &&
+                  _manualLocale.languageCode == 'en',
+              onTap: () async {
+                const locale = Locale('en');
+                setState(() {
+                  _languageMode = AppLanguageMode.manual;
+                  _manualLocale = locale;
+                });
+                await settingsViewModel.setManualLanguage(locale);
+                await _rescheduleNotificationsAfterLanguageChanged();
+                if (!dialogContext.mounted) return;
+                Navigator.pop(dialogContext);
+                if (!mounted) return;
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(l10n.languageUpdated)));
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageOption({
+    required String title,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      title: Text(title),
+      trailing: selected ? const Icon(Icons.check) : null,
+      onTap: onTap,
+    );
+  }
+
+  void _showDaysDialog({
+    required String title,
+    required int currentValue,
+    required _ThresholdType type,
+    required Future<void> Function(int) onSave,
+  }) {
+    final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController(text: currentValue.toString());
+
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -217,25 +370,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
           controller: controller,
           contextMenuBuilder: buildLimitedTextContextMenu,
           keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: '天数',
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            labelText: l10n.dayLabel,
+            border: const OutlineInputBorder(),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           FilledButton(
             onPressed: () async {
               final value = int.tryParse(controller.text);
               if (value != null && value > 0) {
-                final error = _validateThresholdInput(title: title, value: value);
+                final error = _validateThresholdInput(type: type, value: value);
                 if (error != null) {
-                  ScaffoldMessenger.of(dialogContext).showSnackBar(
-                    SnackBar(content: Text(error)),
-                  );
+                  ScaffoldMessenger.of(
+                    dialogContext,
+                  ).showSnackBar(SnackBar(content: Text(error)));
                   return;
                 }
                 await onSave(value);
@@ -243,7 +396,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Navigator.pop(dialogContext);
               }
             },
-            child: const Text('保存'),
+            child: Text(l10n.save),
           ),
         ],
       ),
@@ -251,36 +404,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showAboutDialog() {
+    final l10n = AppLocalizations.of(context)!;
+
     showAboutDialog(
       context: context,
-      applicationName: '收纳',
-      applicationVersion: _appVersion.isEmpty ? '1.2.1' : _appVersion,
+      applicationName: l10n.appTitle,
+      applicationVersion: _appVersion.isEmpty ? '1.0.0' : _appVersion,
       applicationIcon: const Icon(
         Icons.inventory_2,
         size: 48,
         color: Colors.blue,
       ),
       children: [
-        const Text('一款简洁的物品收纳管理应用'),
+        Text(l10n.aboutDescriptionLine1),
         const SizedBox(height: 8),
-        const Text('帮助您管理物品位置和保质期'),
+        Text(l10n.aboutDescriptionLine2),
         const SizedBox(height: 16),
         const Divider(),
         const SizedBox(height: 8),
-        const Text(
-          '功能介绍',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        Text(
+          l10n.featureTitle,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 8),
-        const Text('• 物品管理（添加、编辑、删除）'),
-        const Text('• 位置管理（预设+自定义位置）'),
-        const Text('• 保质期追踪（智能状态提醒）'),
-        const Text('• 分类筛选'),
-        const Text('• 数据统计'),
+        Text(l10n.featureItem1),
+        Text(l10n.featureItem2),
+        Text(l10n.featureItem3),
+        Text(l10n.featureItem4),
+        Text(l10n.featureItem5),
         const SizedBox(height: 16),
         const Divider(),
         const SizedBox(height: 8),
-        const Text('作者：Ice Wraith'),
+        const Text('Ice Wraith'),
       ],
     );
   }
@@ -298,18 +453,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   String? _validateThresholdInput({
-    required String title,
+    required _ThresholdType type,
     required int value,
   }) {
-    if (title.contains('即将过期')) {
-      if (value <= _urgentDays) {
-        return '即将过期天数必须大于紧急天数（$_urgentDays）';
-      }
-    } else if (title.contains('紧急')) {
-      if (value >= _warningDays) {
-        return '紧急天数必须小于即将过期天数（$_warningDays）';
-      }
+    final l10n = AppLocalizations.of(context)!;
+    if (type == _ThresholdType.warning && value <= _urgentDays) {
+      return l10n.warningValidation(_urgentDays);
+    }
+    if (type == _ThresholdType.urgent && value >= _warningDays) {
+      return l10n.urgentValidation(_warningDays);
     }
     return null;
+  }
+
+  Future<void> _rescheduleNotificationsAfterLanguageChanged() async {
+    final settingsService = context.read<SettingsService>();
+    if (!settingsService.notificationEnabled) return;
+    await context.read<ItemViewModel>().rescheduleAllNotifications();
   }
 }

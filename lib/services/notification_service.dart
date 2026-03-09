@@ -1,6 +1,10 @@
+import 'dart:ui' as ui;
+
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
+import '../l10n/app_localizations.dart';
 import '../models/item.dart';
 import 'settings_service.dart';
 
@@ -21,7 +25,9 @@ class NotificationService {
   Future<void> initialize({SettingsService? settingsService}) async {
     tz_data.initializeTimeZones();
 
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const initSettings = InitializationSettings(android: androidSettings);
     await _notifications.initialize(initSettings);
 
@@ -30,8 +36,10 @@ class NotificationService {
   }
 
   Future<bool> requestPermission() async {
-    final android = _notifications.resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>();
+    final android = _notifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (android != null) {
       final granted = await android.requestNotificationsPermission();
       return granted ?? false;
@@ -41,13 +49,16 @@ class NotificationService {
 
   Future<void> scheduleNotification(Item item) async {
     // 检查通知是否启用
-    if (_settingsService == null || !_settingsService!.notificationEnabled) return;
+    if (_settingsService == null || !_settingsService!.notificationEnabled) {
+      return;
+    }
 
     final expirationDate = item.calculatedExpirationDate;
     if (expirationDate == null) return;
 
     final warningDays = _settingsService!.warningDays;
     final urgentDays = _settingsService!.urgentDays;
+    final l10n = _resolveL10n();
 
     await cancelNotifications(item);
 
@@ -56,29 +67,29 @@ class NotificationService {
         key: _warningKey,
         enabled: _settingsService!.warningReminderEnabled,
         daysBefore: warningDays,
-        title: '即将过期提醒',
-        body: '${item.name} 还有$warningDays天就要过期了，请尽快使用！',
+        title: l10n.notificationWarningTitle,
+        body: l10n.notificationWarningBody(item.name, warningDays),
       ),
       _Reminder(
         key: _urgentKey,
         enabled: _settingsService!.urgentReminderEnabled,
         daysBefore: urgentDays,
-        title: '紧急提醒',
-        body: '${item.name} 还有$urgentDays天就要过期了，请尽快使用！',
+        title: l10n.notificationUrgentTitle,
+        body: l10n.notificationUrgentBody(item.name, urgentDays),
       ),
       _Reminder(
         key: _oneDayKey,
         enabled: _settingsService!.oneDayReminderEnabled,
         daysBefore: 1,
-        title: '紧急提醒',
-        body: '${item.name} 还有1天就要过期了！',
+        title: l10n.notificationUrgentTitle,
+        body: l10n.notificationOneDayBody(item.name),
       ),
       _Reminder(
         key: _dueKey,
         enabled: _settingsService!.dueDayReminderEnabled,
         daysBefore: 0,
-        title: '到期提醒',
-        body: '${item.name} 今天到期，请及时处理！',
+        title: l10n.notificationDueTitle,
+        body: l10n.notificationDueBody(item.name),
       ),
     ];
 
@@ -106,6 +117,7 @@ class NotificationService {
     required String title,
     required String body,
   }) async {
+    final l10n = _resolveL10n();
     final expirationDate = item.calculatedExpirationDate;
     if (expirationDate == null) return;
 
@@ -126,8 +138,8 @@ class NotificationService {
 
     final androidDetails = AndroidNotificationDetails(
       'expiration_channel',
-      '保质期提醒',
-      channelDescription: '物品保质期提醒通知',
+      l10n.notificationChannelName,
+      channelDescription: l10n.notificationChannelDescription,
       importance: Importance.high,
       priority: Priority.high,
     );
@@ -155,6 +167,29 @@ class NotificationService {
 
   Future<void> cancelAllNotifications() async {
     await _notifications.cancelAll();
+  }
+
+  AppLocalizations _resolveL10n() {
+    final locale = _resolveLocale();
+    return lookupAppLocalizations(locale);
+  }
+
+  Locale _resolveLocale() {
+    final settings = _settingsService;
+    if (settings != null && settings.languageMode == AppLanguageMode.manual) {
+      return _normalizeLocale(settings.manualLocale);
+    }
+    return _normalizeLocale(ui.PlatformDispatcher.instance.locale);
+  }
+
+  Locale _normalizeLocale(Locale locale) {
+    if (locale.languageCode == 'zh' && locale.countryCode == 'TW') {
+      return const Locale('zh', 'TW');
+    }
+    if (locale.languageCode == 'en') {
+      return const Locale('en');
+    }
+    return const Locale('zh');
   }
 }
 

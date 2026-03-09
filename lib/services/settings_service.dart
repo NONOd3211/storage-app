@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+enum AppLanguageMode { system, manual }
+
 class SettingsService {
   static const String _themeKey = 'theme_mode';
   static const String _warningDaysKey = 'warning_days';
@@ -10,6 +12,9 @@ class SettingsService {
   static const String _urgentReminderEnabledKey = 'urgent_reminder_enabled';
   static const String _oneDayReminderEnabledKey = 'one_day_reminder_enabled';
   static const String _dueDayReminderEnabledKey = 'due_day_reminder_enabled';
+  static const String _languageModeKey = 'language_mode';
+  static const String _languageCodeKey = 'language_code';
+  static const String _countryCodeKey = 'country_code';
 
   late SharedPreferences _prefs;
 
@@ -103,5 +108,37 @@ class SettingsService {
 
   Future<void> setDueDayReminderEnabled(bool enabled) async {
     await _prefs.setBool(_dueDayReminderEnabledKey, enabled);
+  }
+
+  // 语言设置
+  AppLanguageMode get languageMode {
+    final value = _prefs.getString(_languageModeKey);
+    return value == 'manual' ? AppLanguageMode.manual : AppLanguageMode.system;
+  }
+
+  Future<void> setLanguageMode(AppLanguageMode mode) async {
+    await _prefs.setString(
+      _languageModeKey,
+      mode == AppLanguageMode.manual ? 'manual' : 'system',
+    );
+  }
+
+  Locale get manualLocale {
+    final languageCode = _prefs.getString(_languageCodeKey) ?? 'zh';
+    final countryCode = _prefs.getString(_countryCodeKey);
+    if (countryCode == null || countryCode.isEmpty) {
+      return Locale(languageCode);
+    }
+    return Locale(languageCode, countryCode);
+  }
+
+  Future<void> setManualLocale(Locale locale) async {
+    await _prefs.setString(_languageCodeKey, locale.languageCode);
+    final code = locale.countryCode;
+    if (code == null || code.isEmpty) {
+      await _prefs.remove(_countryCodeKey);
+    } else {
+      await _prefs.setString(_countryCodeKey, code);
+    }
   }
 }

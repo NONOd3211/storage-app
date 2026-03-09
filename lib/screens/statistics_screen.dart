@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/app_text_extensions.dart';
 import '../view_models/item_view_model.dart';
 import '../view_models/location_view_model.dart';
 import '../models/item.dart';
@@ -10,9 +12,10 @@ class StatisticsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('统计'),
+        title: Text(l10n.statisticsTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -35,6 +38,7 @@ class StatisticsBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Consumer2<ItemViewModel, LocationViewModel>(
       builder: (context, itemVM, locationVM, child) {
         final items = itemVM.items;
@@ -42,24 +46,38 @@ class StatisticsBody extends StatelessWidget {
 
         // 统计各类数据（使用用户设置的状态阈值）
         final totalItems = items.length;
-        final expiredCount = items.where((i) => itemVM.getItemStatus(i) == ExpirationStatus.expired).length;
-        final urgentCount = items.where((i) => itemVM.getItemStatus(i) == ExpirationStatus.urgent).length;
-        final warningCount = items.where((i) => itemVM.getItemStatus(i) == ExpirationStatus.warning).length;
-        final freshCount = items.where((i) => itemVM.getItemStatus(i) == ExpirationStatus.fresh).length;
+        final expiredCount = items
+            .where((i) => itemVM.getItemStatus(i) == ExpirationStatus.expired)
+            .length;
+        final urgentCount = items
+            .where((i) => itemVM.getItemStatus(i) == ExpirationStatus.urgent)
+            .length;
+        final warningCount = items
+            .where((i) => itemVM.getItemStatus(i) == ExpirationStatus.warning)
+            .length;
+        final freshCount = items
+            .where((i) => itemVM.getItemStatus(i) == ExpirationStatus.fresh)
+            .length;
 
         // 分类统计
         final categoryCount = <ItemCategory, int>{};
         for (final category in ItemCategory.values) {
-          categoryCount[category] = items.where((i) => i.category == category).length;
+          categoryCount[category] = items
+              .where((i) => i.category == category)
+              .length;
         }
 
         // 位置统计
         final locationCount = <String, int>{};
         for (final location in locations) {
-          locationCount[location.name] = items
-              .where((i) =>
-                  i.storageLocationId == location.id ||
-                  (i.storageLocationId.isEmpty && i.storageLocation == location.name))
+          final displayName = location.localizedName(l10n);
+          locationCount[displayName] = items
+              .where(
+                (i) =>
+                    i.storageLocationId == location.id ||
+                    (i.storageLocationId.isEmpty &&
+                        i.storageLocation == location.name),
+              )
               .length;
         }
 
@@ -81,7 +99,7 @@ class StatisticsBody extends StatelessWidget {
 
               // 分类统计
               Text(
-                '分类统计',
+                l10n.categoryStatistics,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 12),
@@ -90,7 +108,7 @@ class StatisticsBody extends StatelessWidget {
 
               // 位置统计
               Text(
-                '位置统计',
+                l10n.locationStatistics,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 12),
@@ -110,6 +128,7 @@ class StatisticsBody extends StatelessWidget {
     required int warningCount,
     required int freshCount,
   }) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -117,26 +136,51 @@ class StatisticsBody extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '物品概览',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              l10n.itemOverview,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStatItem(context, '总计', totalItems.toString(), Colors.blue),
-                _buildStatItem(context, '新鲜', freshCount.toString(), Colors.green),
+                _buildStatItem(
+                  context,
+                  l10n.totalLabel,
+                  totalItems.toString(),
+                  Colors.blue,
+                ),
+                _buildStatItem(
+                  context,
+                  l10n.freshLabel,
+                  freshCount.toString(),
+                  Colors.green,
+                ),
               ],
             ),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStatItem(context, '即将过期', warningCount.toString(), Colors.yellow.shade700),
-                _buildStatItem(context, '紧急', urgentCount.toString(), Colors.orange),
-                _buildStatItem(context, '已过期', expiredCount.toString(), Colors.red),
+                _buildStatItem(
+                  context,
+                  l10n.warningLabel,
+                  warningCount.toString(),
+                  Colors.yellow.shade700,
+                ),
+                _buildStatItem(
+                  context,
+                  l10n.urgentLabel,
+                  urgentCount.toString(),
+                  Colors.orange,
+                ),
+                _buildStatItem(
+                  context,
+                  l10n.expiredLabel,
+                  expiredCount.toString(),
+                  Colors.red,
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -145,6 +189,7 @@ class StatisticsBody extends StatelessWidget {
               const Divider(),
               const SizedBox(height: 8),
               _buildExpirationProgress(
+                context: context,
                 expiredCount: expiredCount,
                 urgentCount: urgentCount,
                 warningCount: warningCount,
@@ -158,38 +203,47 @@ class StatisticsBody extends StatelessWidget {
     );
   }
 
-  Widget _buildStatItem(BuildContext context, String label, String value, Color color) {
+  Widget _buildStatItem(
+    BuildContext context,
+    String label,
+    String value,
+    Color color,
+  ) {
     return Column(
       children: [
         Text(
           value,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: color,
-                fontWeight: FontWeight.bold,
-              ),
+            color: color,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.grey,
-              ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Colors.grey),
         ),
       ],
     );
   }
 
   Widget _buildExpirationProgress({
+    required BuildContext context,
     required int expiredCount,
     required int urgentCount,
     required int warningCount,
     required int freshCount,
     required int total,
   }) {
+    final l10n = AppLocalizations.of(context)!;
     final expiredPercent = total > 0 ? expiredCount / total : 0.0;
     final urgentPercent = total > 0 ? urgentCount / total : 0.0;
     final warningPercent = total > 0 ? warningCount / total : 0.0;
-    final freshPercent = total > 0 ? freshCount / total : 1.0 - expiredPercent - urgentPercent - warningPercent;
+    final freshPercent = total > 0
+        ? freshCount / total
+        : 1.0 - expiredPercent - urgentPercent - warningPercent;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -228,10 +282,10 @@ class StatisticsBody extends StatelessWidget {
         Wrap(
           spacing: 16,
           children: [
-            _buildLegendItem('新鲜', Colors.green),
-            _buildLegendItem('即将过期', Colors.yellow.shade700),
-            _buildLegendItem('紧急', Colors.orange),
-            _buildLegendItem('已过期', Colors.red),
+            _buildLegendItem(l10n.freshLabel, Colors.green),
+            _buildLegendItem(l10n.warningLabel, Colors.yellow.shade700),
+            _buildLegendItem(l10n.urgentLabel, Colors.orange),
+            _buildLegendItem(l10n.expiredLabel, Colors.red),
           ],
         ),
       ],
@@ -256,14 +310,19 @@ class StatisticsBody extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryStats(BuildContext context, Map<ItemCategory, int> categoryCount, int total) {
+  Widget _buildCategoryStats(
+    BuildContext context,
+    Map<ItemCategory, int> categoryCount,
+    int total,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
     if (categoryCount.values.every((v) => v == 0)) {
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Center(
             child: Text(
-              '暂无物品数据',
+              l10n.noItemData,
               style: TextStyle(color: Colors.grey.shade600),
             ),
           ),
@@ -282,7 +341,7 @@ class StatisticsBody extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: _buildProgressRow(
                 context,
-                label: category.label,
+                label: category.localizedLabel(l10n),
                 count: count,
                 percent: percent,
                 color: _getCategoryColor(category),
@@ -294,14 +353,19 @@ class StatisticsBody extends StatelessWidget {
     );
   }
 
-  Widget _buildLocationStats(BuildContext context, Map<String, int> locationCount, int total) {
+  Widget _buildLocationStats(
+    BuildContext context,
+    Map<String, int> locationCount,
+    int total,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
     if (locationCount.isEmpty || locationCount.values.every((v) => v == 0)) {
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Center(
             child: Text(
-              '暂无位置数据',
+              l10n.noLocationData,
               style: TextStyle(color: Colors.grey.shade600),
             ),
           ),
@@ -346,10 +410,7 @@ class StatisticsBody extends StatelessWidget {
       children: [
         Expanded(
           flex: 2,
-          child: Text(
-            label,
-            style: const TextStyle(fontSize: 14),
-          ),
+          child: Text(label, style: const TextStyle(fontSize: 14)),
         ),
         Expanded(
           flex: 5,
@@ -369,10 +430,7 @@ class StatisticsBody extends StatelessWidget {
           child: Text(
             count.toString(),
             textAlign: TextAlign.right,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
+            style: TextStyle(fontWeight: FontWeight.bold, color: color),
           ),
         ),
       ],

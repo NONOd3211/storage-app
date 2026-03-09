@@ -11,3 +11,6 @@
 
 ## 版本
 1.1.8
+
+## 开发检查
+- 检查展示名本地化回归：`./scripts/check_localized_display.sh`

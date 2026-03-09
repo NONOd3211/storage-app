@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/app_text_extensions.dart';
 import '../models/item.dart';
 import '../models/storage_location.dart';
 import '../models/expiration_status_ui.dart';
@@ -14,9 +16,7 @@ class ItemListActions {
   static Future<void> editItem(BuildContext context, Item item) async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => AddItemScreen(editingItem: item),
-      ),
+      MaterialPageRoute(builder: (context) => AddItemScreen(editingItem: item)),
     );
     if (context.mounted) {
       context.read<ItemViewModel>().loadItems();
@@ -26,27 +26,26 @@ class ItemListActions {
   static void openDetail(BuildContext context, Item item) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => ItemDetailScreen(item: item),
-      ),
+      MaterialPageRoute(builder: (context) => ItemDetailScreen(item: item)),
     );
   }
 
   static Future<bool?> confirmDelete(BuildContext context, Item item) {
+    final l10n = AppLocalizations.of(context)!;
     return showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('删除物品'),
-        content: Text('确定要删除 "${item.name}" 吗？'),
+        title: Text(l10n.actionDelete),
+        content: Text(l10n.confirmDeleteItem(item.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('删除'),
+            child: Text(l10n.actionDelete),
           ),
         ],
       ),
@@ -82,9 +81,10 @@ class ItemListActions {
   }
 
   static void showDeletedSnackBar(BuildContext context, String itemName) {
+    final l10n = AppLocalizations.of(context)!;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$itemName 已删除'),
+        content: Text(l10n.deletedItem(itemName)),
         duration: const Duration(seconds: 1),
       ),
     );
@@ -94,16 +94,17 @@ class ItemListActions {
     BuildContext context,
     ItemViewModel viewModel,
   ) {
+    final l10n = AppLocalizations.of(context)!;
     final countToDelete = viewModel.selectedCount;
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('批量删除'),
-        content: Text('确定要删除已选择的 $countToDelete 个物品吗？'),
+        title: Text(l10n.batchDeleteTitle),
+        content: Text(l10n.batchDeleteConfirm(countToDelete)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () async {
@@ -112,14 +113,14 @@ class ItemListActions {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('已删除 $deletedCount 个物品'),
+                    content: Text(l10n.batchDeleted(deletedCount)),
                     duration: const Duration(seconds: 2),
                   ),
                 );
               }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('删除'),
+            child: Text(l10n.actionDelete),
           ),
         ],
       ),
@@ -132,14 +133,15 @@ class ItemListActions {
     required List<StorageLocation> locations,
     String? excludeLocationId,
   }) async {
+    final l10n = AppLocalizations.of(context)!;
     final targetLocations = locations
         .where((location) => location.id != excludeLocationId)
         .toList();
 
     if (targetLocations.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('没有可转移的目标位置')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.noTransferTargetLocation)));
       return;
     }
 
@@ -148,24 +150,24 @@ class ItemListActions {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setState) => AlertDialog(
-          title: const Text('批量转移物品'),
+          title: Text(l10n.batchTransferTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('已选择 ${itemViewModel.selectedCount} 个物品'),
+              Text(l10n.selectedItemsCount(itemViewModel.selectedCount)),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: selectedLocation.id,
-                decoration: const InputDecoration(
-                  labelText: '目标位置',
+                decoration: InputDecoration(
+                  labelText: l10n.targetLocation,
                   border: OutlineInputBorder(),
                 ),
                 items: targetLocations
                     .map(
                       (location) => DropdownMenuItem<String>(
                         value: location.id,
-                        child: Text(location.name),
+                        child: Text(location.localizedName(l10n)),
                       ),
                     )
                     .toList(),
@@ -183,26 +185,34 @@ class ItemListActions {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('取消'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: () async {
-                final count = await itemViewModel.transferSelectedItemsToLocation(
-                  selectedLocation,
-                );
+                final count = await itemViewModel
+                    .transferSelectedItemsToLocation(selectedLocation);
                 if (!dialogContext.mounted) return;
                 Navigator.pop(dialogContext, count);
               },
-              child: const Text('确认转移'),
+              child: Text(l10n.confirmTransfer),
             ),
           ],
         ),
       ),
     );
 
-    if (!context.mounted || transferredCount == null || transferredCount == 0) return;
+    if (!context.mounted || transferredCount == null || transferredCount == 0) {
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('已转移 $transferredCount 个物品到 ${selectedLocation.name}')),
+      SnackBar(
+        content: Text(
+          l10n.transferredItemsToLocation(
+            transferredCount,
+            selectedLocation.localizedName(l10n),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -223,6 +233,7 @@ class SelectionItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: CheckboxListTile(
@@ -230,7 +241,7 @@ class SelectionItemTile extends StatelessWidget {
         onChanged: (_) => onToggleSelection(),
         title: Text(item.name),
         subtitle: Text(
-          '${item.storageLocation} • ${item.category.label} • x${item.quantity}',
+          '${item.localizedStorageLocationName(l10n)} • ${item.category.localizedLabel(l10n)} • x${item.quantity}',
           style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
         ),
         secondary: Container(
@@ -282,10 +293,7 @@ class NormalItemTile extends StatelessWidget {
             color: Colors.red,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Icon(
-            Icons.delete,
-            color: Colors.white,
-          ),
+          child: const Icon(Icons.delete, color: Colors.white),
         ),
         confirmDismiss: (direction) => onConfirmDelete(),
         onDismissed: (direction) => onDeleteByDismissed(),

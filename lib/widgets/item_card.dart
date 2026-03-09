@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/app_text_extensions.dart';
 import '../models/item.dart';
 import '../models/expiration_status_ui.dart';
 
@@ -26,6 +28,7 @@ class ItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final days = item.daysUntilExpiration;
     final statusColor = _statusColor;
 
@@ -69,30 +72,24 @@ class ItemCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          item.storageLocation,
+                          item.localizedStorageLocationName(l10n),
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.grey,
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Text(
-                          '•',
-                          style: TextStyle(color: Colors.grey),
-                        ),
+                        const Text('•', style: TextStyle(color: Colors.grey)),
                         const SizedBox(width: 8),
                         Text(
-                          item.category.label,
+                          item.category.localizedLabel(l10n),
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.grey,
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Text(
-                          '•',
-                          style: TextStyle(color: Colors.grey),
-                        ),
+                        const Text('•', style: TextStyle(color: Colors.grey)),
                         const SizedBox(width: 8),
                         Text(
                           'x${item.quantity.toString()}',
@@ -108,10 +105,10 @@ class ItemCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         days < 0
-                            ? '已过期 ${-days} 天'
+                            ? l10n.expiredDays(-days)
                             : days == 0
-                                ? '今天到期'
-                                : '剩余 $days 天',
+                            ? l10n.dueToday
+                            : l10n.remainingDays(days),
                         style: TextStyle(
                           fontSize: 12,
                           color: statusColor,
@@ -125,20 +122,17 @@ class ItemCard extends StatelessWidget {
               if (onDelete != null)
                 IconButton(
                   icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  tooltip: '删除',
+                  tooltip: l10n.actionDelete,
                   onPressed: onDelete,
                 ),
               if (onEdit != null)
                 IconButton(
                   icon: const Icon(Icons.edit_outlined),
-                  tooltip: '编辑',
+                  tooltip: l10n.actionEdit,
                   onPressed: onEdit,
                 ),
               if (onDelete == null && onEdit == null)
-                const Icon(
-                  Icons.chevron_right,
-                  color: Colors.grey,
-                ),
+                const Icon(Icons.chevron_right, color: Colors.grey),
             ],
           ),
         ),

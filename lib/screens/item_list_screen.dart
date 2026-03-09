@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/app_text_extensions.dart';
 import '../models/item.dart';
 import '../view_models/location_view_model.dart';
 import '../view_models/item_view_model.dart';
@@ -34,6 +36,7 @@ class _ItemListScreenState extends State<ItemListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Consumer<ItemViewModel>(
       builder: (context, viewModel, child) {
         final isSelectionMode = viewModel.isSelectionMode;
@@ -48,8 +51,8 @@ class _ItemListScreenState extends State<ItemListScreen> {
           child: Scaffold(
             appBar: AppBar(
               title: isSelectionMode
-                  ? Text('已选择 ${viewModel.selectedCount} 项')
-                  : const Text('收纳'),
+                  ? Text(l10n.selectionCount(viewModel.selectedCount))
+                  : Text(l10n.appTitle),
               centerTitle: true,
               leading: isSelectionMode
                   ? IconButton(
@@ -63,13 +66,14 @@ class _ItemListScreenState extends State<ItemListScreen> {
                   IconButton(
                     icon: const Icon(Icons.select_all),
                     onPressed: () => viewModel.selectAll(),
-                    tooltip: '全选',
+                    tooltip: l10n.actionSelectAll,
                   ),
                   IconButton(
                     icon: const Icon(Icons.drive_file_move_outline),
                     onPressed: viewModel.selectedCount > 0
                         ? () async {
-                            final locationViewModel = context.read<LocationViewModel>();
+                            final locationViewModel = context
+                                .read<LocationViewModel>();
                             if (locationViewModel.locations.isEmpty) {
                               await locationViewModel.loadLocations();
                             }
@@ -81,7 +85,7 @@ class _ItemListScreenState extends State<ItemListScreen> {
                             );
                           }
                         : null,
-                    tooltip: '转移',
+                    tooltip: l10n.actionTransfer,
                   ),
                   // 批量删除按钮
                   IconButton(
@@ -89,7 +93,7 @@ class _ItemListScreenState extends State<ItemListScreen> {
                     onPressed: viewModel.selectedCount > 0
                         ? () => _showDeleteConfirmation(context, viewModel)
                         : null,
-                    tooltip: '删除',
+                    tooltip: l10n.actionDelete,
                   ),
                 ] else ...[
                   // 添加按钮
@@ -120,14 +124,17 @@ class _ItemListScreenState extends State<ItemListScreen> {
                       controller: _searchController,
                       contextMenuBuilder: buildLimitedTextContextMenu,
                       decoration: InputDecoration(
-                        hintText: '搜索物品',
+                        hintText: l10n.searchItemsHint,
                         prefixIcon: const Icon(Icons.search),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                         filled: true,
                         fillColor: Colors.grey.shade100,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                       ),
                       onChanged: (value) {
                         context.read<ItemViewModel>().setSearchText(value);
@@ -146,7 +153,7 @@ class _ItemListScreenState extends State<ItemListScreen> {
                           children: [
                             _buildCategoryChip(
                               context,
-                              label: '全部',
+                              label: l10n.categoryAll,
                               isSelected: viewModel.selectedCategory == null,
                               onSelected: () => viewModel.clearCategory(),
                             ),
@@ -156,9 +163,11 @@ class _ItemListScreenState extends State<ItemListScreen> {
                                 padding: const EdgeInsets.only(right: 8),
                                 child: _buildCategoryChip(
                                   context,
-                                  label: category.label,
-                                  isSelected: viewModel.selectedCategory == category,
-                                  onSelected: () => viewModel.setCategory(category),
+                                  label: category.localizedLabel(l10n),
+                                  isSelected:
+                                      viewModel.selectedCategory == category,
+                                  onSelected: () =>
+                                      viewModel.setCategory(category),
                                 ),
                               );
                             }),
@@ -169,7 +178,7 @@ class _ItemListScreenState extends State<ItemListScreen> {
                   ),
                 if (!isSelectionMode) const SizedBox(height: 8),
                 Expanded(
-                  child: _buildItemList(viewModel, isSelectionMode),
+                  child: _buildItemList(viewModel, isSelectionMode, l10n),
                 ),
               ],
             ),
@@ -179,7 +188,11 @@ class _ItemListScreenState extends State<ItemListScreen> {
     );
   }
 
-  Widget _buildItemList(ItemViewModel viewModel, bool isSelectionMode) {
+  Widget _buildItemList(
+    ItemViewModel viewModel,
+    bool isSelectionMode,
+    AppLocalizations l10n,
+  ) {
     final items = viewModel.filteredItems;
 
     if (items.isEmpty) {
@@ -193,20 +206,14 @@ class _ItemListScreenState extends State<ItemListScreen> {
               color: Colors.grey.shade400,
             ),
             const SizedBox(height: 16),
-            const Text(
-              '暂无物品',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey,
-              ),
+            Text(
+              l10n.emptyNoItems,
+              style: TextStyle(fontSize: 18, color: Colors.grey),
             ),
             const SizedBox(height: 8),
-            const Text(
-              '点击右上角添加物品',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-              ),
+            Text(
+              l10n.emptyTapAddItem,
+              style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
           ],
         ),
@@ -222,7 +229,14 @@ class _ItemListScreenState extends State<ItemListScreen> {
         // 使用 ViewModel 获取基于用户设置的状态
         final status = viewModel.getItemStatus(item);
 
-        return _buildItemTile(context, viewModel, item, status, isSelectionMode, isSelected);
+        return _buildItemTile(
+          context,
+          viewModel,
+          item,
+          status,
+          isSelectionMode,
+          isSelected,
+        );
       },
     );
   }
@@ -247,16 +261,10 @@ class _ItemListScreenState extends State<ItemListScreen> {
       item: item,
       status: status,
       onConfirmDelete: () => ItemListActions.confirmDelete(context, item),
-      onDeleteShortcut: () => ItemListActions.deleteItemWithConfirm(
-        context,
-        viewModel,
-        item,
-      ),
-      onDeleteByDismissed: () => ItemListActions.deleteItemDirect(
-        context,
-        viewModel,
-        item,
-      ),
+      onDeleteShortcut: () =>
+          ItemListActions.deleteItemWithConfirm(context, viewModel, item),
+      onDeleteByDismissed: () =>
+          ItemListActions.deleteItemDirect(context, viewModel, item),
       onEdit: () => ItemListActions.editItem(context, item),
       onOpenDetail: () => ItemListActions.openDetail(context, item),
       onToggleSelection: () => viewModel.toggleSelection(item.id),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/app_text_extensions.dart';
 import '../models/storage_location.dart';
 import '../models/expiration_status_ui.dart';
 import '../view_models/item_view_model.dart';
@@ -26,9 +28,10 @@ class _LocationListScreenState extends State<LocationListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('位置管理'),
+        title: Text(l10n.locationManagementTitle),
         centerTitle: true,
         actions: [
           IconButton(
@@ -53,11 +56,8 @@ class _LocationListScreenState extends State<LocationListScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    '暂无位置',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey.shade600,
-                    ),
+                    l10n.emptyNoLocations,
+                    style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
                   ),
                 ],
               ),
@@ -68,13 +68,17 @@ class _LocationListScreenState extends State<LocationListScreen> {
             itemCount: locations.length,
             itemBuilder: (context, index) {
               final location = locations[index];
-              final locationStatus =
-                  itemVM.getLocationStatus(location.id, fallbackName: location.name);
+              final locationStatus = itemVM.getLocationStatus(
+                location.id,
+                fallbackName: location.name,
+              );
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                    backgroundColor: Theme.of(
+                      context,
+                    ).primaryColor.withValues(alpha: 0.1),
                     child: Icon(
                       _getIconData(location.icon),
                       color: Theme.of(context).primaryColor,
@@ -82,7 +86,7 @@ class _LocationListScreenState extends State<LocationListScreen> {
                   ),
                   title: Row(
                     children: [
-                      Text(location.name),
+                      Text(location.localizedName(l10n)),
                       if (locationStatus != null) ...[
                         const SizedBox(width: 8),
                         Container(
@@ -97,18 +101,15 @@ class _LocationListScreenState extends State<LocationListScreen> {
                     ],
                   ),
                   subtitle: location.isPreset
-                      ? const Text(
-                          '预设位置',
+                      ? Text(
+                          l10n.presetLocation,
                           style: TextStyle(fontSize: 12),
                         )
                       : null,
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.chevron_right,
-                        color: Colors.grey.shade400,
-                      ),
+                      Icon(Icons.chevron_right, color: Colors.grey.shade400),
                       if (!location.isPreset)
                         IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
@@ -123,6 +124,7 @@ class _LocationListScreenState extends State<LocationListScreen> {
                         builder: (context) => LocationItemsScreen(
                           locationId: location.id,
                           locationName: location.name,
+                          displayName: location.localizedName(l10n),
                         ),
                       ),
                     );
@@ -156,17 +158,18 @@ class _LocationListScreenState extends State<LocationListScreen> {
   }
 
   void _showAddDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('添加位置'),
+        title: Text(l10n.addLocationTitle),
         content: TextField(
           controller: controller,
           contextMenuBuilder: buildLimitedTextContextMenu,
-          decoration: const InputDecoration(
-            labelText: '位置名称',
+          decoration: InputDecoration(
+            labelText: l10n.locationNameLabel,
             border: OutlineInputBorder(),
           ),
           autofocus: true,
@@ -174,23 +177,23 @@ class _LocationListScreenState extends State<LocationListScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () {
               if (controller.text.isNotEmpty) {
                 context.read<LocationViewModel>().addLocation(
-                      StorageLocation(
-                        id: const Uuid().v4(),
-                        name: controller.text,
-                        icon: 'place',
-                        isPreset: false,
-                      ),
-                    );
+                  StorageLocation(
+                    id: const Uuid().v4(),
+                    name: controller.text,
+                    icon: 'place',
+                    isPreset: false,
+                  ),
+                );
                 Navigator.pop(context);
               }
             },
-            child: const Text('添加'),
+            child: Text(l10n.actionAdd),
           ),
         ],
       ),
@@ -198,11 +201,15 @@ class _LocationListScreenState extends State<LocationListScreen> {
   }
 
   void _showDeleteDialog(BuildContext context, StorageLocation location) {
+    final l10n = AppLocalizations.of(context)!;
     final itemVM = context.read<ItemViewModel>();
     final relatedItems = itemVM.items
-        .where((item) =>
-            item.storageLocationId == location.id ||
-            (item.storageLocationId.isEmpty && item.storageLocation == location.name))
+        .where(
+          (item) =>
+              item.storageLocationId == location.id ||
+              (item.storageLocationId.isEmpty &&
+                  item.storageLocation == location.name),
+        )
         .toList();
 
     if (relatedItems.isNotEmpty) {
@@ -210,21 +217,21 @@ class _LocationListScreenState extends State<LocationListScreen> {
       showDialog(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.warning, color: Colors.red),
-              SizedBox(width: 8),
-              Text('确认删除'),
+              const Icon(Icons.warning, color: Colors.red),
+              const SizedBox(width: 8),
+              Text(l10n.confirmDelete),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('位置 "${location.name}" 下有 ${relatedItems.length} 个物品。'),
+              Text(l10n.locationHasItems(location.name, relatedItems.length)),
               const SizedBox(height: 12),
-              const Text(
-                '删除该位置将同时删除以下所有物品：',
+              Text(
+                l10n.deleteLocationAlsoDeleteItems,
                 style: TextStyle(fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 8),
@@ -247,7 +254,7 @@ class _LocationListScreenState extends State<LocationListScreen> {
               ),
               if (relatedItems.length > 5)
                 Text(
-                  '...等共 ${relatedItems.length} 个物品',
+                  l10n.andMoreItems(relatedItems.length),
                   style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
             ],
@@ -255,7 +262,7 @@ class _LocationListScreenState extends State<LocationListScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('取消'),
+              child: Text(l10n.cancel),
             ),
             TextButton(
               onPressed: () async {
@@ -270,13 +277,18 @@ class _LocationListScreenState extends State<LocationListScreen> {
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('已删除位置 "${location.name}" 及 ${relatedItems.length} 个物品'),
+                    content: Text(
+                      l10n.deletedLocationAndItems(
+                        location.name,
+                        relatedItems.length,
+                      ),
+                    ),
                     duration: const Duration(seconds: 2),
                   ),
                 );
               },
               style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('确认删除'),
+              child: Text(l10n.confirmDelete),
             ),
           ],
         ),
@@ -286,27 +298,29 @@ class _LocationListScreenState extends State<LocationListScreen> {
       showDialog(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          title: const Text('删除位置'),
-          content: Text('确定要删除位置 "${location.name}" 吗？'),
+          title: Text(l10n.deleteLocationTitle),
+          content: Text(l10n.confirmDeleteLocation(location.name)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('取消'),
+              child: Text(l10n.cancel),
             ),
             TextButton(
               onPressed: () async {
-                await context.read<LocationViewModel>().deleteLocation(location);
+                await context.read<LocationViewModel>().deleteLocation(
+                  location,
+                );
                 if (!context.mounted) return;
                 Navigator.pop(dialogContext);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('已删除位置 "${location.name}"'),
+                    content: Text(l10n.deletedLocation(location.name)),
                     duration: const Duration(seconds: 2),
                   ),
                 );
               },
               style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('删除'),
+              child: Text(l10n.actionDelete),
             ),
           ],
         ),

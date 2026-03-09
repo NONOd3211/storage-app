@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
+import '../l10n/app_localizations.dart';
+import '../l10n/app_text_extensions.dart';
 import '../models/item.dart';
 import '../models/expiration_status_ui.dart';
 import '../services/settings_service.dart';
@@ -106,9 +108,10 @@ class _AddItemScreenState extends State<AddItemScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEditing ? '编辑物品' : '添加物品'),
+        title: Text(isEditing ? l10n.editItemTitle : l10n.addItemTitle),
         centerTitle: true,
       ),
       body: Form(
@@ -123,8 +126,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '基本信息',
+                    Text(
+                      l10n.basicInfo,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -134,13 +137,13 @@ class _AddItemScreenState extends State<AddItemScreen> {
                     TextFormField(
                       controller: _nameController,
                       contextMenuBuilder: buildLimitedTextContextMenu,
-                      decoration: const InputDecoration(
-                        labelText: '物品名称',
+                      decoration: InputDecoration(
+                        labelText: l10n.itemNameLabel,
                         border: OutlineInputBorder(),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return '请输入物品名称';
+                          return l10n.itemNameRequired;
                         }
                         return null;
                       },
@@ -150,17 +153,17 @@ class _AddItemScreenState extends State<AddItemScreen> {
                       controller: _quantityController,
                       contextMenuBuilder: buildLimitedTextContextMenu,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: '份数',
+                      decoration: InputDecoration(
+                        labelText: l10n.quantityLabel,
                         border: OutlineInputBorder(),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return '请输入份数';
+                          return l10n.quantityRequired;
                         }
                         final quantity = int.tryParse(value);
                         if (quantity == null || quantity < 1) {
-                          return '请输入有效的份数';
+                          return l10n.quantityInvalid;
                         }
                         return null;
                       },
@@ -169,14 +172,14 @@ class _AddItemScreenState extends State<AddItemScreen> {
                     DropdownButtonFormField<ItemCategory>(
                       key: ValueKey(_category),
                       initialValue: _category,
-                      decoration: const InputDecoration(
-                        labelText: '分类',
+                      decoration: InputDecoration(
+                        labelText: l10n.categoryLabel,
                         border: OutlineInputBorder(),
                       ),
                       items: ItemCategory.values.map((cat) {
                         return DropdownMenuItem(
                           value: cat,
-                          child: Text(cat.label),
+                          child: Text(cat.localizedLabel(l10n)),
                         );
                       }).toList(),
                       onChanged: (value) {
@@ -193,14 +196,14 @@ class _AddItemScreenState extends State<AddItemScreen> {
                           initialValue: _storageLocationId.isEmpty
                               ? null
                               : _storageLocationId,
-                          decoration: const InputDecoration(
-                            labelText: '存放位置',
+                          decoration: InputDecoration(
+                            labelText: l10n.storageLocationLabel,
                             border: OutlineInputBorder(),
                           ),
                           items: locationVM.locations.map((loc) {
                             return DropdownMenuItem(
                               value: loc.id,
-                              child: Text(loc.name),
+                              child: Text(loc.localizedName(l10n)),
                             );
                           }).toList(),
                           onChanged: (value) {
@@ -210,7 +213,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                           },
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return '请选择存放位置';
+                              return l10n.selectStorageLocationRequired;
                             }
                             return null;
                           },
@@ -230,8 +233,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '保质期信息',
+                    Text(
+                      l10n.expirationInfo,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -239,7 +242,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                     ),
                     const SizedBox(height: 16),
                     SwitchListTile(
-                      title: const Text('使用生产日期+保质期天数'),
+                      title: Text(l10n.useProductionDateAndShelfLife),
                       value: _useProductionDate,
                       onChanged: (value) {
                         setState(() {
@@ -249,7 +252,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                     ),
                     if (_useProductionDate) ...[
                       ListTile(
-                        title: const Text('生产日期'),
+                        title: Text(l10n.productionDate),
                         subtitle: Text(
                           '${_productionDate.year}-${_productionDate.month.toString().padLeft(2, '0')}-${_productionDate.day.toString().padLeft(2, '0')}',
                         ),
@@ -272,17 +275,20 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Row(
                           children: [
-                            const Text('保质期天数: '),
+                            Text(l10n.shelfLifeDays),
                             SizedBox(
                               width: 100,
                               child: TextFormField(
                                 controller: _expirationDaysController,
                                 contextMenuBuilder: buildLimitedTextContextMenu,
                                 keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(
-                                  hintText: '天数',
+                                decoration: InputDecoration(
+                                  hintText: l10n.dayLabel,
                                   isDense: true,
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
                                   border: OutlineInputBorder(),
                                 ),
                                 onChanged: (value) {
@@ -295,13 +301,13 @@ class _AddItemScreenState extends State<AddItemScreen> {
                                 },
                               ),
                             ),
-                            const Text(' 天'),
+                            Text(' ${l10n.daysSuffix}'),
                           ],
                         ),
                       ),
                     ] else ...[
                       ListTile(
-                        title: const Text('到期日期'),
+                        title: Text(l10n.dueDate),
                         subtitle: Text(
                           '${_expirationDate.year}-${_expirationDate.month.toString().padLeft(2, '0')}-${_expirationDate.day.toString().padLeft(2, '0')}',
                         ),
@@ -334,8 +340,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '备注',
+                    Text(
+                      l10n.remarks,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -346,8 +352,8 @@ class _AddItemScreenState extends State<AddItemScreen> {
                       controller: _notesController,
                       contextMenuBuilder: buildLimitedTextContextMenu,
                       maxLines: 3,
-                      decoration: const InputDecoration(
-                        hintText: '添加备注（可选）',
+                      decoration: InputDecoration(
+                        hintText: l10n.optionalRemarkHint,
                         border: OutlineInputBorder(),
                       ),
                     ),
@@ -368,7 +374,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('到期日期'),
+                          Text(l10n.expirationDateLabel),
                           Text(
                             '${calculatedExpirationDate!.year}-${calculatedExpirationDate!.month.toString().padLeft(2, '0')}-${calculatedExpirationDate!.day.toString().padLeft(2, '0')}',
                             style: TextStyle(
@@ -383,11 +389,11 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('剩余天数'),
+                            Text(l10n.remainingDaysLabel),
                             Text(
                               calculatedDays! < 0
-                                  ? '${-calculatedDays!} 天（已过期）'
-                                  : '$calculatedDays 天',
+                                  ? l10n.expiredDaysCompact(-calculatedDays!)
+                                  : l10n.remainingDays(calculatedDays!),
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: daysColor,
@@ -419,7 +425,7 @@ class _AddItemScreenState extends State<AddItemScreen> {
                         color: Colors.white,
                       ),
                     )
-                  : Text(isEditing ? '保存修改' : '添加物品'),
+                  : Text(isEditing ? l10n.saveChanges : l10n.addItemTitle),
             ),
           ],
         ),
@@ -437,9 +443,10 @@ class _AddItemScreenState extends State<AddItemScreen> {
         .where((item) => item.id == _storageLocationId)
         .firstOrNull;
     if (location == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请选择有效的存放位置')),
-      );
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.invalidStorageLocation)));
       return;
     }
 
@@ -473,9 +480,10 @@ class _AddItemScreenState extends State<AddItemScreen> {
       Navigator.pop(context);
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('保存失败，请重试')),
-      );
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.saveFailedRetry)));
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);
